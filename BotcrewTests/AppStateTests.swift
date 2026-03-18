@@ -211,7 +211,7 @@ final class AppStateTests: XCTestCase {
 
     func testMockDataFirstProjectHasAgents() {
         let state = AppState.withMockData()
-        XCTAssertEqual(state.selectedProject?.agents.count, 3)
+        XCTAssertEqual(state.selectedProject?.agents.count, 5)
     }
 
     func testMockDataHasErrorProject() {

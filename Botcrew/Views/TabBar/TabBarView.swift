@@ -7,28 +7,55 @@ struct TabBarView: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        HStack(spacing: 0) {
-            if let project = appState.selectedProject, !project.agents.isEmpty {
-                let roots = project.agents.filter { $0.parentId == nil }
-                ForEach(roots) { agent in
-                    Text(agent.name)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.65))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 5)
-                                .fill(Color(white: 50/255, opacity: 0.8))
-                        )
-                        .padding(.leading, 8)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                if appState.rootAgents.isEmpty {
+                    Text("No agents")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.35))
+                        .padding(.horizontal, 16)
+                } else {
+                    ForEach(appState.rootAgents) { root in
+                        let subs = appState.subAgents(for: root.id)
+                        let isExpanded = appState.activeClusterId == root.id
+
+                        HStack(spacing: 2) {
+                            RootTabView(
+                                agent: root,
+                                subAgents: subs,
+                                isExpanded: isExpanded,
+                                isSelected: appState.selectedAgentId == root.id
+                            )
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    appState.toggleCluster(root.id)
+                                }
+                            }
+
+                            if isExpanded {
+                                ForEach(subs) { sub in
+                                    SubTabView(
+                                        agent: sub,
+                                        isSelected: appState.selectedAgentId == sub.id
+                                    )
+                                    .onTapGesture {
+                                        withAnimation(.easeInOut(duration: 0.15)) {
+                                            appState.selectAgent(sub.id)
+                                        }
+                                    }
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .leading).combined(with: .opacity),
+                                        removal: .opacity
+                                    ))
+                                }
+                            }
+                        }
+                    }
                 }
-            } else {
-                Text("No agents")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.35))
-                    .padding(.horizontal, 16)
+
+                Spacer()
             }
-            Spacer()
+            .padding(.horizontal, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(white: 40/255, opacity: 0.8))
