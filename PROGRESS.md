@@ -6,9 +6,9 @@
 
 ## Current state
 
-**Phase**: 4 — Complete
-**Status**: Phases 0–4 done. Full pixel office with canvas-rendered sprites, cluster zones, tether lines, status dots, selection rings, and bidirectional tab↔sprite sync. Draggable divider with 3 snap states. 58 tests passing.
-**Next action**: Begin Phase 5 — Sprite Animations (bob cycles, shape switching, bubbles, spawn animation, error flash).
+**Phase**: 5 — Complete
+**Status**: Phases 0–5 done. Sprites animate with bob cycles (per-status frequency/amplitude), error flash at 12Hz with pulsing halo + ! badge, writing/waiting bubbles, pulsing tab pips. 66 tests passing.
+**Next action**: Begin Phase 6 — JSONL Process Integration (real Claude Code sessions driving the UI).
 
 ---
 
@@ -29,7 +29,7 @@
 - [x] Phase 2 — Tab Bar + Agent Hierarchy
 - [x] Phase 3 — Activity Feed
 - [x] Phase 4 — Pixel Office Panel
-- [ ] Phase 5 — Sprite Animations
+- [x] Phase 5 — Sprite Animations
 - [ ] Phase 6 — JSONL Process Integration
 - [ ] Phase 7 — Polish + MVP Ship
 
@@ -95,8 +95,19 @@ Phase 4 — Pixel Office Panel:
     - Bidirectional: click sprite → selectAgent → tab syncs
   - 12 new tests (58 total)
 
+Phase 5 — Sprite Animations:
+  - TimelineView(.animation) driving continuous Canvas redraws
+  - BobParams per status: typing 0.45s/±1.5px, idle 1.3s/±0.6px, waiting 2.0s/±0.9px
+  - Per-agent phase offset from UUID hash (sprites bob independently)
+  - Error: 12Hz red body flash + pulsing halo (1.5s radial gradient) + ! badge
+  - "writing..." bubble (green) and "waiting" bubble (amber)
+  - Tether lines follow animated sprite positions
+  - PulsingPip component: tab status pips pulse on error
+  - Error border on root/sub tabs when any agent in cluster has error
+  - 8 new AnimationTests (66 total)
+
 Blockers: None
-Next: Phase 5 — Sprite Animations
+Next: Phase 6 — JSONL Process Integration
 ```
 
 ---

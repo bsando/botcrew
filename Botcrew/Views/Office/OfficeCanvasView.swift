@@ -12,31 +12,59 @@ struct SpriteLayout: Identifiable {
     let rootCenter: CGPoint? // for tether line (subs only)
 }
 
+// Animation parameters per status
+struct BobParams {
+    let frequency: Double  // cycles per second
+    let amplitude: CGFloat // pixels
+
+    static func forStatus(_ status: AgentStatus) -> BobParams {
+        switch status {
+        case .typing: BobParams(frequency: 1.0 / 0.45, amplitude: 1.5)
+        case .reading: BobParams(frequency: 1.0 / 1.0, amplitude: 0.8)
+        case .idle: BobParams(frequency: 1.0 / 1.3, amplitude: 0.6)
+        case .waiting: BobParams(frequency: 1.0 / 2.0, amplitude: 0.9)
+        case .error: BobParams(frequency: 12.0, amplitude: 0.5)
+        }
+    }
+}
+
 struct OfficeCanvasView: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        GeometryReader { geo in
-            let layouts = computeLayouts(in: geo.size)
+        TimelineView(.animation) { timeline in
+            let time = timeline.date.timeIntervalSinceReferenceDate
 
-            Canvas { context, size in
-                drawClusters(context: &context, layouts: layouts, size: size)
-            }
-            .overlay {
-                // Invisible tap targets for each sprite
-                ForEach(layouts) { sprite in
-                    Color.clear
-                        .frame(width: 40, height: 50)
-                        .contentShape(Rectangle())
-                        .position(sprite.center)
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                appState.selectAgent(sprite.id)
+            GeometryReader { geo in
+                let layouts = computeLayouts(in: geo.size)
+
+                Canvas { context, size in
+                    drawClusters(context: &context, layouts: layouts, size: size, time: time)
+                }
+                .overlay {
+                    // Invisible tap targets for each sprite
+                    ForEach(layouts) { sprite in
+                        Color.clear
+                            .frame(width: 40, height: 50)
+                            .contentShape(Rectangle())
+                            .position(sprite.center)
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    appState.selectAgent(sprite.id)
+                                }
                             }
-                        }
+                    }
                 }
             }
         }
+    }
+
+    // MARK: - Bob calculation
+
+    private func bobOffset(for agent: Agent, time: Double) -> CGFloat {
+        let params = BobParams.forStatus(agent.status)
+        let phase = Double(agent.id.hashValue & 0xFFFF) / 65535.0 * .pi * 2
+        return CGFloat(sin(time * params.frequency * .pi * 2 + phase)) * params.amplitude
     }
 
     // MARK: - Layout computation
@@ -82,7 +110,7 @@ struct OfficeCanvasView: View {
 
     // MARK: - Drawing
 
-    private func drawClusters(context: inout GraphicsContext, layouts: [SpriteLayout], size: CGSize) {
+    private func drawClusters(context: inout GraphicsContext, layouts: [SpriteLayout], size: CGSize, time: Double) {
         let roots = appState.rootAgents
         let clusterWidth = roots.isEmpty ? size.width : size.width / CGFloat(roots.count)
         let pixelScale: CGFloat = 3.5
@@ -91,7 +119,7 @@ struct OfficeCanvasView: View {
             let isActive = appState.activeClusterId == root.id
             let clusterOpacity = isActive ? 1.0 : 0.45
 
-            // Draw cluster zone rect (faint dashed border + tinted bg)
+            // Draw cluster zone rect
             let zoneRect = CGRect(
                 x: clusterWidth * CGFloat(i) + 8,
                 y: 8,
@@ -108,7 +136,9 @@ struct OfficeCanvasView: View {
             // Draw tether lines (subs → root)
             for layout in clusterLayouts where !layout.isRoot {
                 if let rootCenter = layout.rootCenter {
-                    drawTether(context: &context, from: layout.center, to: rootCenter, opacity: clusterOpacity)
+                    let bobY = bobOffset(for: layout.agent, time: time)
+                    let animatedCenter = CGPoint(x: layout.center.x, y: layout.center.y + bobY)
+                    drawTether(context: &context, from: animatedCenter, to: rootCenter, opacity: clusterOpacity)
                 }
             }
 
@@ -117,26 +147,45 @@ struct OfficeCanvasView: View {
                 let isError = layout.agent.status == .error
                 let spriteOpacity = isError ? 1.0 : clusterOpacity
                 let isSelected = appState.selectedAgentId == layout.agent.id
+                let bobY = bobOffset(for: layout.agent, time: time)
+                let animatedCenter = CGPoint(x: layout.center.x, y: layout.center.y + bobY)
 
+                // Error halo (pulsing radial gradient)
+                if isError {
+                    drawErrorHalo(context: &context, center: animatedCenter, scale: pixelScale, time: time)
+                }
+
+                // Sprite
                 drawSprite(
                     context: &context,
-                    center: layout.center,
+                    center: animatedCenter,
                     agent: layout.agent,
                     scale: pixelScale,
-                    opacity: spriteOpacity
+                    opacity: spriteOpacity,
+                    time: time
                 )
 
-                // Status dot (6px, top-right of sprite)
-                drawStatusDot(context: &context, center: layout.center, status: layout.agent.status, scale: pixelScale, opacity: spriteOpacity)
+                // Status dot
+                drawStatusDot(context: &context, center: animatedCenter, status: layout.agent.status, scale: pixelScale, opacity: spriteOpacity)
+
+                // Error ! badge
+                if isError {
+                    drawErrorBadge(context: &context, center: animatedCenter, scale: pixelScale)
+                }
 
                 // Selection ring
                 if isSelected {
-                    drawSelectionRing(context: &context, center: layout.center, scale: pixelScale)
+                    drawSelectionRing(context: &context, center: animatedCenter, scale: pixelScale)
+                }
+
+                // Bubbles (typing/waiting)
+                if isActive || isError {
+                    drawBubble(context: &context, center: animatedCenter, agent: layout.agent, scale: pixelScale, opacity: spriteOpacity)
                 }
 
                 // Agent name label (only for active cluster)
                 if isActive {
-                    drawNameLabel(context: &context, center: layout.center, name: layout.agent.name, scale: pixelScale, opacity: spriteOpacity)
+                    drawNameLabel(context: &context, center: animatedCenter, name: layout.agent.name, scale: pixelScale, opacity: spriteOpacity)
                 }
             }
         }
@@ -155,7 +204,6 @@ struct OfficeCanvasView: View {
     private func drawTether(context: inout GraphicsContext, from: CGPoint, to: CGPoint, opacity: Double) {
         var path = Path()
         path.move(to: from)
-        // Quadratic curve upward
         let controlPoint = CGPoint(
             x: (from.x + to.x) / 2,
             y: min(from.y, to.y) - 15
@@ -168,22 +216,25 @@ struct OfficeCanvasView: View {
         )
     }
 
-    private func drawSprite(context: inout GraphicsContext, center: CGPoint, agent: Agent, scale: CGFloat, opacity: Double) {
+    private func drawSprite(context: inout GraphicsContext, center: CGPoint, agent: Agent, scale: CGFloat, opacity: Double, time: Double) {
         let grid = SpriteData.shape(for: agent.status)
         let gridW = CGFloat(SpriteData.gridWidth)
         let gridH = CGFloat(SpriteData.gridHeight)
         let originX = center.x - (gridW * scale) / 2
         let originY = center.y - (gridH * scale) / 2
 
+        // Error flash: alternate body color with red at 12Hz
+        let isErrorFlash = agent.status == .error && sin(time * 12 * .pi * 2) > 0
+
         for (row, cols) in grid.enumerated() {
             for (col, val) in cols.enumerated() {
                 guard val != 0 else { continue }
                 let color: Color
                 switch val {
-                case 2: color = Color(red: 26/255, green: 28/255, blue: 44/255) // eyes
-                case 3: color = agent.bodyColor.opacity(0.7) // accent
-                case 6: color = Color(hex: 0xFF5F57) // X-eyes (error)
-                default: color = agent.bodyColor // body
+                case 2: color = Color(red: 26/255, green: 28/255, blue: 44/255)
+                case 3: color = agent.bodyColor.opacity(0.7)
+                case 6: color = Color(hex: 0xFF5F57)
+                default: color = isErrorFlash ? Color(hex: 0xFF5F57) : agent.bodyColor
                 }
                 let rect = CGRect(
                     x: originX + CGFloat(col) * scale,
@@ -228,6 +279,66 @@ struct OfficeCanvasView: View {
             with: .color(Color(hex: 0x0A84FF).opacity(0.5)),
             lineWidth: 1.5
         )
+    }
+
+    private func drawErrorHalo(context: inout GraphicsContext, center: CGPoint, scale: CGFloat, time: Double) {
+        let spriteWidth = CGFloat(SpriteData.gridWidth) * scale
+        let spriteHeight = CGFloat(SpriteData.gridHeight) * scale
+        let pulse = CGFloat(0.3 + 0.2 * sin(time * .pi * 2 / 1.5)) // 1.5s cycle
+        let haloRect = CGRect(
+            x: center.x - spriteWidth / 2 - 8,
+            y: center.y - spriteHeight / 2 - 8,
+            width: spriteWidth + 16,
+            height: spriteHeight + 16
+        )
+        let haloPath = Path(ellipseIn: haloRect)
+        context.fill(haloPath, with: .color(Color(hex: 0xFF5F57).opacity(Double(pulse) * 0.3)))
+    }
+
+    private func drawErrorBadge(context: inout GraphicsContext, center: CGPoint, scale: CGFloat) {
+        let spriteHeight = CGFloat(SpriteData.gridHeight) * scale
+        let badgeCenter = CGPoint(x: center.x, y: center.y - spriteHeight / 2 - 12)
+        // Red pill background
+        let badgeRect = CGRect(x: badgeCenter.x - 7, y: badgeCenter.y - 7, width: 14, height: 14)
+        let badgePath = Path(ellipseIn: badgeRect)
+        context.fill(badgePath, with: .color(Color(hex: 0xFF5F57)))
+        // ! text
+        let text = Text("!")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(Color.white)
+        context.draw(text, at: badgeCenter)
+    }
+
+    private func drawBubble(context: inout GraphicsContext, center: CGPoint, agent: Agent, scale: CGFloat, opacity: Double) {
+        let spriteWidth = CGFloat(SpriteData.gridWidth) * scale
+        let spriteHeight = CGFloat(SpriteData.gridHeight) * scale
+
+        let bubbleText: String
+        let bubbleColor: Color
+
+        switch agent.status {
+        case .typing:
+            bubbleText = "writing..."
+            bubbleColor = Color(hex: 0x34d399)
+        case .waiting:
+            bubbleText = "waiting"
+            bubbleColor = Color(hex: 0xfbbf24)
+        default:
+            return
+        }
+
+        let bubbleX = center.x + spriteWidth / 2 + 6
+        let bubbleY = center.y - spriteHeight / 2
+
+        // Bubble background
+        let text = Text(bubbleText)
+            .font(.system(size: 8, weight: .medium))
+            .foregroundStyle(bubbleColor.opacity(opacity))
+
+        let bgRect = CGRect(x: bubbleX - 2, y: bubbleY - 7, width: CGFloat(bubbleText.count) * 5.5 + 8, height: 14)
+        let bgPath = Path(roundedRect: bgRect, cornerRadius: 4)
+        context.fill(bgPath, with: .color(Color(white: 0.1, opacity: 0.7 * opacity)))
+        context.draw(text, at: CGPoint(x: bgRect.midX, y: bgRect.midY))
     }
 
     private func drawNameLabel(context: inout GraphicsContext, center: CGPoint, name: String, scale: CGFloat, opacity: Double) {

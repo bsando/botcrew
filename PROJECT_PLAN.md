@@ -100,22 +100,18 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 ### Phase 5 — Sprite Animations (Week 4)
 *Goal: sprites express state through body language.*
 
-- [ ] Animation loop via `CADisplayLink` or `TimelineView`
-- [ ] Bob animation: `sin(t * freq + phase) * amplitude`
+- [x] Animation loop via `TimelineView(.animation)` driving continuous Canvas redraws
+- [x] Bob animation: `sin(t * freq + phase) * amplitude`, per-agent phase from UUID hash
   - Typing: 0.45s cycle, ±1.5px
   - Idle: 1.3s cycle, ±0.6px
   - Waiting: 2.0s cycle, ±0.9px
-- [ ] Sprite shape selection by animation state:
-  - Typing → TYPE shape (hunched forward)
-  - Waiting → SHRUG shape (arms wide)
-  - Error → ERROR shape (X eyes)
-  - Others → BODY shape
-- [ ] "writing..." bubble (typing state)
-- [ ] "waiting" bubble (amber, waiting state)
-- [ ] Spawn animation: scale 0→1 over 0.4s + hop
-- [ ] Error state: red body flash 12Hz + pulsing halo + ! badge
-- [ ] Error at full opacity even in dimmed cluster
-- [ ] Tab pip pulse animation (CSS-equivalent via `withAnimation`)
+- [x] Sprite shape selection by animation state (done in Phase 4 via `SpriteData.shape(for:)`)
+- [x] "writing..." bubble (green, typing state)
+- [x] "waiting" bubble (amber, waiting state)
+- [ ] Spawn animation: scale 0→1 over 0.4s + hop — deferred to Phase 7
+- [x] Error state: red body flash 12Hz + pulsing halo (1.5s radial gradient) + ! badge
+- [x] Error at full opacity even in dimmed cluster (done in Phase 4)
+- [x] Tab pip pulse animation (PulsingPip component, error border on tabs)
 
 **Deliverable**: All agents animating correctly, error state unmissable.
 
