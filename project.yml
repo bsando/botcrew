@@ -1,0 +1,41 @@
+name: Botcrew
+options:
+  bundleIdPrefix: com.redwoodfog
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  minimumXcodeGenVersion: "2.0"
+
+targets:
+  Botcrew:
+    type: application
+    platform: macOS
+    sources:
+      - Botcrew
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.redwoodfog.botcrew
+        SWIFT_VERSION: "5.10"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        PRODUCT_NAME: Botcrew
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
+        GENERATE_INFOPLIST_FILE: YES
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.1.0
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+
+  BotcrewTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - BotcrewTests
+    dependencies:
+      - target: Botcrew
+    settings:
+      base:
+        SWIFT_VERSION: "5.10"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Botcrew.app/Contents/MacOS/Botcrew"

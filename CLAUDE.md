@@ -48,6 +48,41 @@ ls -la ~/.claude/projects/
 
 Always run `xcodebuild` after writing Swift to catch compile errors immediately. Don't accumulate multiple files of unverified code.
 
+```bash
+# Run tests
+xcodebuild -scheme BotcrewTests -destination 'platform=macOS' test
+
+# Regenerate Xcode project after changing project.yml
+xcodegen generate
+```
+
+---
+
+## Testing
+
+Unit test target: `BotcrewTests` (in `BotcrewTests/` directory). Uses `@testable import Botcrew`.
+
+**What to test (by phase):**
+
+| Phase | Test scope | Why |
+|---|---|---|
+| 1 — Sidebar | Project add/remove, switching, status transitions | State management correctness |
+| 2 — Tabs | Cluster expand/collapse, tab selection, bidirectional sync | Complex selection state |
+| 3 — Feed | Event filtering by agent, ordering | Data flow correctness |
+| 4 — Office | Sprite position math, cluster layout | Pixel-precise rendering |
+| 6 — JSONL | Parser input/output, event detection, hierarchy reconstruction | Highest value — heuristic logic breaks silently |
+
+**What NOT to test:**
+- SwiftUI views — verify visually by running the app
+- SpriteKit/Canvas rendering — same, visual verification
+- Process lifecycle — integration-level, hard to mock
+
+**Rules:**
+- Run tests after each phase is complete
+- Add tests alongside new model/state/parser code, not after
+- Test files go in `BotcrewTests/` with the naming convention `<Thing>Tests.swift`
+- Use factory helpers (e.g. `makeAgent()`, `makeProject()`) to avoid boilerplate in tests
+
 ---
 
 
