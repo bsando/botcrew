@@ -86,12 +86,23 @@ Next: Phase 4 — Pixel Office Panel
 
 ---
 
+## Pre-Phase 4 checklist
+
+- [x] Verify traffic light hover: all 3 at 40% default, window hover → 100%, button hover → icon
+- [x] Verify mock data has 2 root agents + 2–3 subs each — fixed: added component-gen sub to ui-builder (now 2 roots × 2 subs each = 6 agents)
+- [x] Confirm Project.path stores the NSOpenPanel-selected URL
+- [x] Confirm SpriteRenderer.swift is used by SpriteThumbnail (not duplicated logic)
+- [x] Run xcodebuild + tests to confirm clean baseline before Phase 4 — 46 tests, 0 failures
+
+---
+
 ## Open questions (resolve before Phase 6)
 
 - [ ] **JSONL path**: Run `find ~/.claude -name "*.jsonl" | head -5` and record the actual path here: `___________`
 - [ ] **Spawn vs attach**: Does Botcrew spawn new `claude` processes or attach to existing terminals? (Recommend: spawn for v1)
 - [x] **Sprite design**: Blob (Figma v2) — decided, implemented in SpriteThumbnail
 - [x] **Agent color assignment**: Fixed role-based palette — decided, using colors from CLAUDE.md
+- [x] **Office panel placeholder**: OfficePanelView has a 26px bar (project name + agent dots) + solid rectangle canvas. Clean stub, safe to overwrite in Phase 4.
 
 ---
 
