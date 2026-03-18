@@ -13,21 +13,17 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 ### Phase 0 — Scaffold (Week 1)
 *Goal: app opens, window exists, no crashes. Claude Code handles all of this including Xcode project creation.*
 
-- [ ] Create Xcode project — write `project.pbxproj` and required scaffolding directly:
-  - App name: `Botcrew`, Bundle ID: `com.redwoodfog.botcrew`
-  - SwiftUI lifecycle, macOS 14+ deployment target, Swift 5.10
-- [ ] Run `./scripts/create_stubs.sh` to generate all Swift file stubs
-- [ ] `BotcrewApp.swift`: `@main`, `WindowGroup`, `.frame(minWidth: 900, minHeight: 640)`
-- [ ] `AppState.swift`: `@Observable` class — `selectedProjectId`, `selectedAgentId`, `activeClusterId`, `openTerminalIds`
-- [ ] `ContentView.swift`: `HSplitView` → sidebar (168px fixed) + main column
-- [ ] Mock data structs matching types in `CLAUDE_CODE_REFERENCE.md`
-- [ ] `.preferredColorScheme(.dark)` on window
-- [ ] Window background: `.background(.ultraThinMaterial)` with dark overlay `rgba(25,25,30,0.4)`
-- [ ] `MacFrame` titlebar with interactive traffic lights (see `MacFrame.tsx` in `CLAUDE_CODE_REFERENCE.md`):
-  - Default: 40% opacity all three dots
-  - Window hover: 100% opacity
-  - Individual button hover: show icon (×, —, ↕) at 100%, others 40%, 150ms animation
-- [ ] Verify: `xcodebuild -scheme Botcrew -destination 'platform=macOS' build` passes 0 errors
+- [x] Create Xcode project — via xcodegen (project.yml), Bundle ID: `com.redwoodfog.botcrew`, macOS 14+, Swift 5.10
+- [x] Run `./scripts/create_stubs.sh` to generate all Swift file stubs
+- [x] `BotcrewApp.swift`: `@main`, `WindowGroup`, `.frame(minWidth: 900, minHeight: 640)`
+- [x] `AppState.swift`: `@Observable` class — `selectedProjectId`, `selectedAgentId`, `activeClusterId`, `openTerminalIds`
+- [x] `ContentView.swift`: `HSplitView` → sidebar (168px fixed) + main column
+- [x] Mock data structs matching types in `CLAUDE_CODE_REFERENCE.md`
+- [x] `.preferredColorScheme(.dark)` on window
+- [x] Window background: `.background(.ultraThinMaterial)` with dark overlay `rgba(25,25,30,0.4)`
+- [x] `MacFrame` titlebar with interactive traffic lights
+- [x] Verify: `xcodebuild` passes 0 errors
+- [x] Unit test target (BotcrewTests) with AppState, Model, and SpriteData tests
 
 **Deliverable**: `xcodebuild` passes. App launches. Sidebar + placeholder with macOS chrome visible.
 
@@ -36,12 +32,12 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 ### Phase 1 — Sidebar + Projects (Week 1–2)
 *Goal: project switching works end-to-end with mock data.*
 
-- [ ] `Project` model (id, name, path, status, agentCount, cost)
-- [ ] `SidebarView`: project list, active highlight, status dot
-- [ ] Add/remove project (sheet with directory picker)
-- [ ] Project switching → clears tab strip, resets office
-- [ ] Token/cost card at sidebar bottom (mock values)
-- [ ] Collapsed sidebar state (icon-only, 44px)
+- [x] `Project` model (id, name, path, status, agents, events, tokenCount, cost)
+- [x] `SidebarView`: project list, active highlight, status dot, agent sub-dots
+- [x] Add/remove project (AddProjectSheet with NSOpenPanel directory picker)
+- [x] Project switching → clears tab strip, resets office (selectProject clears agent/cluster/terminals)
+- [x] Token/cost card at sidebar bottom (formatted from selected project)
+- [x] Collapsed sidebar state (CollapsedSidebarView, icon-only, 44px)
 
 **Deliverable**: Click projects → UI updates throughout.
 
@@ -50,13 +46,13 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 ### Phase 2 — Tab Bar + Agent Hierarchy (Week 2)
 *Goal: tab clusters expand/collapse, selection syncs everywhere.*
 
-- [ ] `Agent` model (id, name, parentId, status, bodyColor, shirtColor, anim)
-- [ ] `TabBarView`: root tabs + sub-tab strips per cluster
-- [ ] Cluster expand/collapse (only active cluster shows subtabs)
-- [ ] Collapsed cluster: root tab + inline sub-status dots
-- [ ] Tab selection state in `AppState`
-- [ ] Sprite thumbnail canvases in tabs (12×16 root, 10×14 sub)
-- [ ] Tab ↔ sprite bidirectional selection hook (prep for Phase 4)
+- [x] `Agent` model (id, name, parentId, status, bodyColor, shirtColor, spawnTime)
+- [x] `TabBarView`: scrollable root tabs + sub-tab strips per cluster
+- [x] Cluster expand/collapse (toggleCluster — only active cluster shows subtabs)
+- [x] Collapsed cluster: root tab + inline sub-status dots
+- [x] Tab selection state in `AppState` (selectAgent, rootAgents, subAgents)
+- [x] Sprite thumbnail canvases in tabs (SpriteThumbnail: 12×16 root, 10×14 sub)
+- [x] Tab ↔ sprite bidirectional selection hook (prep for Phase 4)
 
 **Deliverable**: Full tab bar interaction with mock agents.
 
@@ -65,14 +61,14 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 ### Phase 3 — Activity Feed (Week 2–3)
 *Goal: feed shows structured events, terminal view toggles in.*
 
-- [ ] `ActivityEvent` model (timestamp, type, agentId, file, meta)
-- [ ] `ActivityFeedView`: event list with icon, text, sub-text
-- [ ] Event type icons: spawn (⬡), write (↑), read (↓), bash ($), thinking (·)
-- [ ] Feed header: colored swatch, agent name, role, status pill
-- [ ] Thinking state: animated dots
-- [ ] Activity/Terminal toggle in feed header
-- [ ] Terminal view: raw text output (mock static content for now)
-- [ ] Feed scoped to selected agent
+- [x] `ActivityEvent` model (timestamp, type, agentId, file, meta)
+- [x] `ActivityFeedView`: event list with icon, text, sub-text (lazy scrolling)
+- [x] Event type icons: spawn (⬡), write (↑), read (↓), bash ($), thinking (·), error (!)
+- [x] Feed header: colored swatch, agent name, role badge, status pill
+- [x] Thinking state: animated dots (ThinkingDots component)
+- [x] Activity/Terminal toggle in feed header
+- [x] Terminal view: raw text output (mock static content)
+- [x] Feed scoped to selected agent (eventsForSelectedAgent filtered + sorted)
 
 **Deliverable**: Click tab → see that agent's activity feed.
 
