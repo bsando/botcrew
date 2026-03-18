@@ -51,6 +51,10 @@ struct OfficeCanvasView: View {
                             .onTapGesture {
                                 withAnimation(.easeInOut(duration: 0.15)) {
                                     appState.selectAgent(sprite.id)
+                                    // Error recovery: clicking an errored sprite opens the terminal
+                                    if sprite.agent.status == .error {
+                                        appState.showTerminal = true
+                                    }
                                 }
                             }
                     }

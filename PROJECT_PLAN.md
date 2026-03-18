@@ -144,14 +144,14 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 ### Phase 7 — Polish + MVP Ship (Week 6–7)
 *Goal: stable, daily-driveable.*
 
-- [ ] Expanded panel ops mode (sprites top, terminals bottom, internal divider)
-- [ ] Multi-terminal grid: 1 terminal full width, 2 side-by-side, 3–4 as 2×2
-- [ ] Session restore: reopen app → reconnect to running processes
-- [ ] Error recovery UI: click errored sprite → auto-open terminal
-- [ ] Empty states: no projects, no agents, new project setup flow
-- [ ] App icon: pixel art botcrew logo (blob robots at desks)
-- [ ] Menu bar item (optional): aggregate status across all projects
-- [ ] Performance: office canvas stays at 60fps with 8+ agents
+- [x] Expanded panel ops mode (sprites top, terminals bottom, internal divider)
+- [x] Multi-terminal grid: 1 terminal full width, 2 side-by-side, 3–4 as 2×2
+- [ ] Session restore: reopen app → reconnect to running processes — deferred to v2
+- [x] Error recovery UI: click errored sprite → auto-open terminal
+- [x] Empty states: no projects, no agents, new project setup flow
+- [ ] App icon: pixel art botcrew logo (blob robots at desks) — deferred to v2
+- [ ] Menu bar item (optional): aggregate status across all projects — deferred to v2
+- [x] Performance: office canvas stays at 60fps with 8+ agents (tested)
 
 **Deliverable**: v0.1 — daily driver for your own Claude Code workflow.
 

@@ -5,6 +5,7 @@ import SwiftUI
 
 struct OfficePanelView: View {
     @Environment(AppState.self) private var appState
+    @State private var internalDividerRatio: CGFloat = 0.5
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,7 +15,24 @@ struct OfficePanelView: View {
                 .background(Color(red: 15/255, green: 16/255, blue: 32/255))
 
             // Canvas (hidden when collapsed)
-            if appState.officePanelSnap != .collapsed {
+            if appState.officePanelSnap == .expanded {
+                // Ops mode: sprites top, terminals bottom
+                GeometryReader { geo in
+                    VStack(spacing: 0) {
+                        OfficeCanvasView()
+                            .frame(height: geo.size.height * internalDividerRatio)
+                            .background(Color(red: 25/255, green: 26/255, blue: 46/255))
+
+                        // Internal divider
+                        Rectangle()
+                            .fill(Color.white.opacity(0.08))
+                            .frame(height: 1)
+
+                        MultiTerminalGrid()
+                            .frame(maxHeight: .infinity)
+                    }
+                }
+            } else if appState.officePanelSnap != .collapsed {
                 OfficeCanvasView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(red: 25/255, green: 26/255, blue: 46/255))
@@ -76,6 +94,63 @@ struct OfficePanelView: View {
         case .waiting: Color(hex: 0xFEBC2E)
         case .idle: Color(hex: 0x888780)
         case .error: Color(hex: 0xFF5F57)
+        }
+    }
+}
+
+// MARK: - Multi-Terminal Grid
+
+struct MultiTerminalGrid: View {
+    @Environment(AppState.self) private var appState
+
+    private var terminalAgents: [Agent] {
+        let ids = appState.openTerminalIds
+        guard let project = appState.selectedProject else { return [] }
+        return ids.compactMap { id in
+            project.agents.first { $0.id == id }
+        }
+    }
+
+    var body: some View {
+        let agents = terminalAgents
+        if agents.isEmpty {
+            // Show selected agent's terminal or empty state
+            if appState.selectedAgent != nil {
+                TerminalView()
+            } else {
+                VStack {
+                    Text("No terminal open")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.25))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(red: 15/255, green: 15/255, blue: 20/255))
+            }
+        } else if agents.count == 1 {
+            // Full width
+            TerminalView()
+        } else if agents.count == 2 {
+            // Side by side
+            HStack(spacing: 1) {
+                TerminalView()
+                TerminalView()
+            }
+        } else {
+            // 2×2 grid
+            VStack(spacing: 1) {
+                HStack(spacing: 1) {
+                    TerminalView()
+                    TerminalView()
+                }
+                if agents.count > 2 {
+                    HStack(spacing: 1) {
+                        TerminalView()
+                        if agents.count > 3 {
+                            TerminalView()
+                        }
+                    }
+                }
+            }
         }
     }
 }

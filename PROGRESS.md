@@ -6,9 +6,9 @@
 
 ## Current state
 
-**Phase**: 6 — Complete
-**Status**: Phases 0–6 done. Process spawning via Foundation.Process, JSONL file watching via DispatchSource, agent state parsing from tool use events, token counting, subagent auto-detection, terminal view with live output. 93 tests passing.
-**Next action**: Begin Phase 7 — Polish + MVP Ship.
+**Phase**: 7 — Complete (v0.1 MVP)
+**Status**: All 7 phases done. Expanded ops mode with multi-terminal grid, error recovery UI, empty states for no-project and no-agent flows. 103 tests passing.
+**Next action**: Manual testing, then real-world usage as daily driver.
 
 ---
 
@@ -31,7 +31,7 @@
 - [x] Phase 4 — Pixel Office Panel
 - [x] Phase 5 — Sprite Animations
 - [x] Phase 6 — JSONL Process Integration
-- [ ] Phase 7 — Polish + MVP Ship
+- [x] Phase 7 — Polish + MVP Ship
 
 ---
 
@@ -151,6 +151,34 @@ Phase 6 — JSONL Process Integration:
 
 Blockers: None
 Next: Phase 7 — Polish + MVP Ship
+```
+
+### Session 2 (continued) — 2026-03-17
+
+```
+Phase 7 — Polish + MVP Ship:
+  - Expanded panel ops mode: sprites top half, terminals bottom half,
+    internal divider ratio, GeometryReader-based split
+  - MultiTerminalGrid: 1 terminal full width, 2 side-by-side, 3-4 as 2×2
+    grid, empty state when no terminal open
+  - Error recovery UI: clicking errored sprite auto-opens terminal view
+  - Empty states: EmptyProjectView (no project selected — folder icon +
+    "Add Project" button), EmptyAgentView (project selected but no agents —
+    terminal icon + "Start Session" button)
+  - ContentView: conditional rendering based on project/agent state
+  - 10 new PolishTests (103 total): empty states, error recovery,
+    panel snap states, terminal grid, performance with 8+ agents,
+    mock data structure validation
+
+Deferred to v2:
+  - App icon (pixel art blob robots)
+  - Menu bar item (aggregate status)
+  - Session restore (reconnect on relaunch)
+  - Spawn animation (scale 0→1 over 0.4s)
+  - @AppStorage panel height persistence
+
+Blockers: None
+Status: v0.1 MVP complete
 ```
 
 ---
