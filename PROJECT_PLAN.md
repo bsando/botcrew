@@ -120,22 +120,22 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 ### Phase 6 — JSONL Process Integration (Week 5–6)
 *Goal: real Claude Code sessions drive the UI.*
 
-- [ ] `ClaudeCodeProcess`: wraps `Foundation.Process`, pipes stdout
-- [ ] One process per project tab, never killed on tab switch
-- [ ] Ring buffer per process (last N lines of stdout)
-- [ ] Terminal view reads from ring buffer (live)
-- [ ] `JSOLWatcher`: `DispatchSource` file watcher on Claude Code transcript dir
-  - Path: `~/.claude/projects/<hash>/` (verify actual path)
-- [ ] Parse tool use events:
-  - `write_file` / `create_file` → typing animation
-  - `read_file` / `list_files` → reading animation (slow bob, BODY shape)
-  - `bash` → bash bubble
-  - `Task` spawn → new subagent (spawn animation)
+- [x] `ClaudeCodeProcess`: wraps `Foundation.Process`, pipes stdout/stderr, zsh login shell for PATH
+- [x] One process per project tab, never killed on tab switch
+- [x] Ring buffer per process (last 2000 lines of stdout)
+- [x] Terminal view reads from ring buffer (live, auto-scrolls)
+- [x] `JSONLWatcher`: `DispatchSource` file watcher on Claude Code transcript dir
+  - Path: `~/.claude/projects/<path-hash>/<session-uuid>.jsonl`
+- [x] Parse tool use events:
+  - `Write` / `Edit` → typing animation
+  - `Read` / `Grep` / `Glob` → reading animation
+  - `Bash` → typing (active work)
+  - `Agent` / `Task` spawn → waiting + new subagent
   - Idle timer (>2s no events) → idle
-  - Error string detection → error state
-- [ ] Parse `usage` fields → token count + cost estimate
-- [ ] Reconstruct agent hierarchy from Task spawn events
-- [ ] Auto-add new subagent tabs as they spawn
+  - Error detection → error state
+- [x] Parse `usage` fields → token count + cost estimate
+- [x] Reconstruct agent hierarchy from subagent JSONL files
+- [x] Auto-add new subagent tabs as they spawn (with color palette cycling)
 
 **Deliverable**: Open a real Claude Code session → see it in Botcrew live.
 

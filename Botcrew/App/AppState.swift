@@ -15,6 +15,12 @@ class AppState {
     var showTerminal = false
     var officePanelHeight: CGFloat = 148 // snap: 26 (collapsed), 148 (ambient), 270 (expanded)
 
+    // MARK: - Process Management (Phase 6)
+    var processes: [UUID: ClaudeCodeProcess] = [:]  // projectId → process
+    var watchers: [UUID: JSONLWatcher] = [:]        // projectId → watcher
+    private var idleTimers: [UUID: Timer] = [:]      // agentId → idle timer
+    private var agentSessionMap: [String: UUID] = [:]  // JSONL path → agentId
+
     enum OfficePanelSnap: CGFloat {
         case collapsed = 26
         case ambient = 148
@@ -106,6 +112,214 @@ class AppState {
         )
         projects.append(project)
         selectProject(project.id)
+    }
+
+    // MARK: - Session Management (Phase 6)
+
+    /// Start a new Claude Code session for a project
+    func startSession(projectId: UUID, prompt: String) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        let project = projects[idx]
+
+        // Create root agent
+        let rootAgent = Agent(
+            id: UUID(),
+            name: "claude",
+            parentId: nil,
+            status: .reading,
+            bodyColor: Color(hex: 0xc0a8ff),
+            shirtColor: Color(hex: 0x5030a0),
+            spawnTime: Date()
+        )
+        projects[idx].agents.append(rootAgent)
+        projects[idx].status = .active
+        projects[idx].events.append(ActivityEvent(
+            id: UUID(), agentId: rootAgent.id, timestamp: Date(),
+            type: .spawn, meta: "Session started"
+        ))
+
+        // Map the root agent
+        selectAgent(rootAgent.id)
+
+        // Launch process
+        let proc = ClaudeCodeProcess(projectPath: project.path, prompt: prompt)
+        processes[projectId] = proc
+        proc.start()
+
+        // Set up JSONL watcher after a short delay (file needs to be created)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.setupWatcher(for: projectId, rootAgentId: rootAgent.id)
+        }
+    }
+
+    /// Stop a running session
+    func stopSession(projectId: UUID) {
+        processes[projectId]?.stop()
+        watchers[projectId]?.stopAll()
+        watchers.removeValue(forKey: projectId)
+
+        if let idx = projects.firstIndex(where: { $0.id == projectId }) {
+            // Mark all agents idle
+            for i in projects[idx].agents.indices {
+                if projects[idx].agents[i].status != .error {
+                    projects[idx].agents[i].status = .idle
+                }
+            }
+            projects[idx].status = .idle
+        }
+    }
+
+    /// Set up JSONL file watcher for a project
+    private func setupWatcher(for projectId: UUID, rootAgentId: UUID) {
+        guard let project = projects.first(where: { $0.id == projectId }) else { return }
+
+        let projectPath = project.path.path
+        let watcher = JSONLWatcher()
+
+        // Handle new JSONL events
+        watcher.onEvent = { [weak self] filePath, event in
+            self?.handleJSONLEvent(event, filePath: filePath, projectId: projectId)
+        }
+
+        // Handle new subagent files
+        watcher.onNewSubagent = { [weak self] filePath in
+            self?.handleNewSubagent(filePath: filePath, projectId: projectId, rootAgentId: rootAgentId)
+        }
+
+        // Find and watch the latest session file
+        if let sessionPath = JSONLWatcher.findLatestSession(for: projectPath) {
+            agentSessionMap[sessionPath] = rootAgentId
+            watcher.watchFile(at: sessionPath)
+            watcher.watchSubagentDirectory(at: sessionPath)
+        }
+
+        watchers[projectId] = watcher
+    }
+
+    /// Handle a parsed JSONL event
+    private func handleJSONLEvent(_ event: JSONLEvent, filePath: String, projectId: UUID) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }),
+              let agentId = agentSessionMap[filePath] else { return }
+
+        // Only process assistant messages (they contain tool uses)
+        guard event.isAssistant else { return }
+
+        // Extract tool uses and update agent state
+        let toolUses = AgentStateParser.extractToolUses(from: event)
+        for toolUse in toolUses {
+            let newStatus = AgentStateParser.statusFromToolUse(toolUse.name)
+            let eventType = AgentStateParser.eventTypeFromToolUse(toolUse.name)
+            let filePath = AgentStateParser.extractFilePath(from: toolUse.input)
+
+            // Update agent status
+            if let agentIdx = projects[idx].agents.firstIndex(where: { $0.id == agentId }) {
+                projects[idx].agents[agentIdx].status = newStatus
+            }
+
+            // Add activity event
+            let activityEvent = ActivityEvent(
+                id: UUID(),
+                agentId: agentId,
+                timestamp: event.timestamp ?? Date(),
+                type: eventType,
+                file: filePath,
+                meta: toolUse.name
+            )
+            projects[idx].events.append(activityEvent)
+
+            // Reset idle timer for this agent
+            resetIdleTimer(agentId: agentId, projectIdx: idx)
+        }
+
+        // Check for errors
+        if AgentStateParser.containsError(event) {
+            if let agentIdx = projects[idx].agents.firstIndex(where: { $0.id == agentId }) {
+                projects[idx].agents[agentIdx].status = .error
+                projects[idx].status = .error
+            }
+            projects[idx].events.append(ActivityEvent(
+                id: UUID(), agentId: agentId, timestamp: event.timestamp ?? Date(),
+                type: .error, meta: "Error detected"
+            ))
+        }
+
+        // Update token counts
+        if let usage = AgentStateParser.extractUsage(from: event) {
+            projects[idx].tokenCount += usage.input + usage.output
+            projects[idx].estimatedCost = AgentStateParser.estimateCost(
+                inputTokens: projects[idx].tokenCount,
+                outputTokens: usage.output
+            )
+        }
+    }
+
+    /// Handle a new subagent JSONL file appearing
+    private func handleNewSubagent(filePath: String, projectId: UUID, rootAgentId: UUID) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+
+        // Assign color from palette based on agent count
+        let subColors: [(body: UInt32, shirt: UInt32)] = [
+            (0x80e8a0, 0x0a4020), // green - writer
+            (0xffd080, 0x6a3800), // amber - test
+            (0x80c8ff, 0x0a3060), // blue - utility
+            (0xffb090, 0x802010), // coral - UI
+        ]
+        let colorIdx = projects[idx].agents.count % subColors.count
+        let colors = subColors[colorIdx]
+
+        // Extract agent name from filename (e.g. "agent-a3f8f2e.jsonl" → "agent-a3f8f2e")
+        let name = (filePath as NSString).lastPathComponent
+            .replacingOccurrences(of: ".jsonl", with: "")
+
+        let subAgent = Agent(
+            id: UUID(),
+            name: name,
+            parentId: rootAgentId,
+            status: .reading,
+            bodyColor: Color(hex: colors.body),
+            shirtColor: Color(hex: colors.shirt),
+            spawnTime: Date()
+        )
+
+        projects[idx].agents.append(subAgent)
+        agentSessionMap[filePath] = subAgent.id
+
+        // Add spawn event
+        projects[idx].events.append(ActivityEvent(
+            id: UUID(), agentId: subAgent.id, timestamp: Date(),
+            type: .spawn, meta: "Subagent spawned"
+        ))
+
+        // Auto-expand the root cluster to show new sub
+        activeClusterId = rootAgentId
+    }
+
+    /// Reset the idle timer for an agent (goes idle after 2s of no events)
+    private func resetIdleTimer(agentId: UUID, projectIdx: Int) {
+        idleTimers[agentId]?.invalidate()
+        idleTimers[agentId] = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            if projectIdx < self.projects.count,
+               let agentIdx = self.projects[projectIdx].agents.firstIndex(where: { $0.id == agentId }),
+               self.projects[projectIdx].agents[agentIdx].status != .error {
+                self.projects[projectIdx].agents[agentIdx].status = .idle
+            }
+        }
+    }
+
+    /// Get terminal output for the selected project's process
+    var terminalOutputForSelectedProject: String {
+        guard let projectId = selectedProjectId,
+              let proc = processes[projectId] else {
+            return ""
+        }
+        return proc.terminalOutput
+    }
+
+    /// Whether the selected project has a running session
+    var selectedProjectHasSession: Bool {
+        guard let projectId = selectedProjectId else { return false }
+        return processes[projectId]?.isRunning == true
     }
 
     static func withMockData() -> AppState {

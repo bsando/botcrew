@@ -6,9 +6,9 @@
 
 ## Current state
 
-**Phase**: 5 — Complete
-**Status**: Phases 0–5 done. Sprites animate with bob cycles (per-status frequency/amplitude), error flash at 12Hz with pulsing halo + ! badge, writing/waiting bubbles, pulsing tab pips. 66 tests passing.
-**Next action**: Begin Phase 6 — JSONL Process Integration (real Claude Code sessions driving the UI).
+**Phase**: 6 — Complete
+**Status**: Phases 0–6 done. Process spawning via Foundation.Process, JSONL file watching via DispatchSource, agent state parsing from tool use events, token counting, subagent auto-detection, terminal view with live output. 93 tests passing.
+**Next action**: Begin Phase 7 — Polish + MVP Ship.
 
 ---
 
@@ -30,7 +30,7 @@
 - [x] Phase 3 — Activity Feed
 - [x] Phase 4 — Pixel Office Panel
 - [x] Phase 5 — Sprite Animations
-- [ ] Phase 6 — JSONL Process Integration
+- [x] Phase 6 — JSONL Process Integration
 - [ ] Phase 7 — Polish + MVP Ship
 
 ---
@@ -110,6 +110,49 @@ Blockers: None
 Next: Phase 6 — JSONL Process Integration
 ```
 
+### Session 2 — 2026-03-17
+
+```
+Started: Phase 6
+Completed: Phase 6
+
+Phase 6 — JSONL Process Integration:
+  - Decision: Spawn (Botcrew launches Claude Code) over Attach (watch existing)
+  - Discovered JSONL path: ~/.claude/projects/<path-hash>/<session-uuid>.jsonl
+  - Subagents at: <session-uuid>/subagents/agent-<hash>.jsonl
+  - ClaudeCodeProcess: Foundation.Process wrapper, zsh -l -c for PATH,
+    stdout/stderr pipes with readabilityHandler, 2000-line ring buffer,
+    termination handler, start/stop lifecycle
+  - AgentStateParser: JSONL line parser, tool use → AgentStatus mapping
+    (Write/Edit → typing, Read/Grep → reading, Agent/Task → waiting),
+    tool use → EventType mapping, token extraction (input + cache tokens),
+    cost estimation ($15/M input, $75/M output), subagent spawn detection,
+    file path extraction, error detection
+  - JSONLWatcher: DispatchSource file watching (write + extend events),
+    tail-style reading (tracks file offset, reads only new bytes),
+    subagent directory watcher (scans for new .jsonl files),
+    project hash helper (path → -path-hash), latest session finder,
+    bulk event reader for initial load
+  - AppState additions: processes dict, watchers dict, idle timers,
+    agentSessionMap (JSONL path → agentId), startSession() creates root
+    agent + launches process + sets up watcher after 1s delay,
+    stopSession() terminates process + marks agents idle (preserves error),
+    handleJSONLEvent() updates agent status + adds activity events +
+    resets 2s idle timer + tracks tokens, handleNewSubagent() creates
+    sub-agent with color from palette + auto-expands cluster,
+    terminalOutputForSelectedProject, selectedProjectHasSession
+  - TerminalView: shows real process output when available, auto-scrolls
+    to bottom on new output, falls back to mock when no process running
+  - 27 new ProcessIntegrationTests (93 total): parser status/event mapping,
+    JSONL line parsing, tool use extraction, subagent detection, token
+    counting, cost estimation, process initialization, path hashing,
+    session management (start creates root agent, stop marks idle,
+    stop preserves error)
+
+Blockers: None
+Next: Phase 7 — Polish + MVP Ship
+```
+
 ---
 
 ## Pre-Phase 4 checklist
@@ -124,8 +167,8 @@ Next: Phase 6 — JSONL Process Integration
 
 ## Open questions (resolve before Phase 6)
 
-- [ ] **JSONL path**: Run `find ~/.claude -name "*.jsonl" | head -5` and record the actual path here: `___________`
-- [ ] **Spawn vs attach**: Does Botcrew spawn new `claude` processes or attach to existing terminals? (Recommend: spawn for v1)
+- [x] **JSONL path**: `~/.claude/projects/<path-hash>/<session-uuid>.jsonl` — path hash is project path with `/` → `-`, subagents at `<session-uuid>/subagents/agent-<hash>.jsonl`
+- [x] **Spawn vs attach**: Spawn — Botcrew launches Claude Code sessions itself via Foundation.Process
 - [x] **Sprite design**: Blob (Figma v2) — decided, implemented in SpriteThumbnail
 - [x] **Agent color assignment**: Fixed role-based palette — decided, using colors from CLAUDE.md
 - [x] **Office panel placeholder**: OfficePanelView has a 26px bar (project name + agent dots) + solid rectangle canvas. Clean stub, safe to overwrite in Phase 4.
