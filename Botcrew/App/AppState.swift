@@ -12,6 +12,7 @@ class AppState {
     var openTerminalIds: [UUID] = []
     var isSidebarCollapsed = false
     var showAddProjectSheet = false
+    var showTerminal = false
 
     var selectedProject: Project? {
         projects.first { $0.id == selectedProjectId }
@@ -19,6 +20,13 @@ class AppState {
 
     var selectedAgent: Agent? {
         selectedProject?.agents.first { $0.id == selectedAgentId }
+    }
+
+    var eventsForSelectedAgent: [ActivityEvent] {
+        guard let project = selectedProject, let agentId = selectedAgentId else { return [] }
+        return project.events
+            .filter { $0.agentId == agentId }
+            .sorted { $0.timestamp > $1.timestamp }
     }
 
     var rootAgents: [Agent] {
@@ -75,6 +83,7 @@ class AppState {
             path: path,
             status: .idle,
             agents: [],
+            events: [],
             tokenCount: 0,
             estimatedCost: 0
         )
@@ -104,19 +113,55 @@ class AppState {
                   bodyColor: Color(hex: 0x80c8ff), shirtColor: Color(hex: 0x0a3060), spawnTime: Date().addingTimeInterval(-60)),
         ]
 
+        let now = Date()
+        let mockEvents: [ActivityEvent] = [
+            ActivityEvent(id: UUID(), agentId: root1Id, timestamp: now.addingTimeInterval(-290),
+                          type: .spawn, meta: "Session started"),
+            ActivityEvent(id: UUID(), agentId: root1Id, timestamp: now.addingTimeInterval(-280),
+                          type: .read, file: "CLAUDE.md", meta: "Reading project instructions"),
+            ActivityEvent(id: UUID(), agentId: root1Id, timestamp: now.addingTimeInterval(-260),
+                          type: .thinking, meta: "Planning implementation approach"),
+            ActivityEvent(id: UUID(), agentId: root1Id, timestamp: now.addingTimeInterval(-240),
+                          type: .spawn, meta: "Spawned writer-1"),
+            ActivityEvent(id: UUID(), agentId: sub1Id, timestamp: now.addingTimeInterval(-235),
+                          type: .read, file: "ContentView.swift", meta: "Reading existing code"),
+            ActivityEvent(id: UUID(), agentId: sub1Id, timestamp: now.addingTimeInterval(-220),
+                          type: .write, file: "SidebarView.swift", meta: "Implementing sidebar"),
+            ActivityEvent(id: UUID(), agentId: sub1Id, timestamp: now.addingTimeInterval(-200),
+                          type: .write, file: "TokenCard.swift", meta: "Adding token display"),
+            ActivityEvent(id: UUID(), agentId: sub1Id, timestamp: now.addingTimeInterval(-180),
+                          type: .bash, meta: "xcodebuild -scheme Botcrew build"),
+            ActivityEvent(id: UUID(), agentId: sub2Id, timestamp: now.addingTimeInterval(-170),
+                          type: .spawn, meta: "Spawned by orchestrator"),
+            ActivityEvent(id: UUID(), agentId: sub2Id, timestamp: now.addingTimeInterval(-160),
+                          type: .bash, meta: "xcodebuild test"),
+            ActivityEvent(id: UUID(), agentId: sub2Id, timestamp: now.addingTimeInterval(-150),
+                          type: .thinking, meta: "Analyzing test results"),
+            ActivityEvent(id: UUID(), agentId: root2Id, timestamp: now.addingTimeInterval(-110),
+                          type: .write, file: "TabBarView.swift", meta: "Building tab components"),
+            ActivityEvent(id: UUID(), agentId: sub3Id, timestamp: now.addingTimeInterval(-50),
+                          type: .read, file: "theme.css", meta: "Checking design tokens"),
+        ]
+
         let project1 = Project(
             id: UUID(), name: "botcrew", path: URL(fileURLWithPath: "/Users/brian/botcrew"),
-            status: .active, agents: agents, tokenCount: 24_500, estimatedCost: 0.48
+            status: .active, agents: agents, events: mockEvents, tokenCount: 24_500, estimatedCost: 0.48
         )
         let project2 = Project(
             id: UUID(), name: "api-server", path: URL(fileURLWithPath: "/Users/brian/api-server"),
-            status: .idle, agents: [], tokenCount: 8_200, estimatedCost: 0.16
+            status: .idle, agents: [], events: [], tokenCount: 8_200, estimatedCost: 0.16
         )
+        let docWriterId = UUID()
         let project3 = Project(
             id: UUID(), name: "docs-site", path: URL(fileURLWithPath: "/Users/brian/docs-site"),
             status: .error, agents: [
-                Agent(id: UUID(), name: "doc-writer", parentId: nil, status: .error,
-                      bodyColor: Color(hex: 0x80c8ff), shirtColor: Color(hex: 0x0a3060), spawnTime: Date().addingTimeInterval(-60)),
+                Agent(id: docWriterId, name: "doc-writer", parentId: nil, status: .error,
+                      bodyColor: Color(hex: 0x80c8ff), shirtColor: Color(hex: 0x0a3060), spawnTime: now.addingTimeInterval(-60)),
+            ], events: [
+                ActivityEvent(id: UUID(), agentId: docWriterId, timestamp: now.addingTimeInterval(-55),
+                              type: .write, file: "README.md", meta: "Updating docs"),
+                ActivityEvent(id: UUID(), agentId: docWriterId, timestamp: now.addingTimeInterval(-40),
+                              type: .error, meta: "Build failed: missing module"),
             ], tokenCount: 3_100, estimatedCost: 0.06
         )
 

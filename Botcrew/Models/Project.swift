@@ -13,6 +13,7 @@ struct Project: Identifiable {
     var path: URL
     var status: ProjectStatus
     var agents: [Agent]
+    var events: [ActivityEvent]
     var tokenCount: Int
     var estimatedCost: Double
 }

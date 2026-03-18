@@ -18,7 +18,7 @@ final class TabSelectionTests: XCTestCase {
 
     private func makeProject(agents: [Agent]) -> Project {
         Project(id: UUID(), name: "Test", path: URL(fileURLWithPath: "/tmp"),
-                status: .active, agents: agents, tokenCount: 0, estimatedCost: 0)
+                status: .active, agents: agents, events: [], tokenCount: 0, estimatedCost: 0)
     }
 
     private func stateWithAgents() -> (AppState, UUID, UUID, UUID) {

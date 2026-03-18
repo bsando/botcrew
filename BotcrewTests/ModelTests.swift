@@ -48,6 +48,7 @@ final class ModelTests: XCTestCase {
             path: URL(fileURLWithPath: "/tmp"),
             status: .active,
             agents: agents,
+            events: [],
             tokenCount: 1500,
             estimatedCost: 0.03
         )

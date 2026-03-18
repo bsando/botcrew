@@ -36,6 +36,7 @@ final class AppStateTests: XCTestCase {
             path: URL(fileURLWithPath: "/tmp/test"),
             status: .active,
             agents: agents,
+            events: [],
             tokenCount: tokenCount,
             estimatedCost: estimatedCost
         )
