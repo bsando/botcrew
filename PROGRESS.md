@@ -6,9 +6,9 @@
 
 ## Current state
 
-**Phase**: 3 — Complete
-**Status**: Phases 0–3 done. App has functional sidebar with project switching, tab bar with expandable agent clusters and sprite thumbnails, activity feed with event filtering and terminal toggle. 46 tests passing.
-**Next action**: Begin Phase 4 — Pixel Office Panel (canvas renderer, sprite clusters, tethers, bidirectional selection).
+**Phase**: 4 — Complete
+**Status**: Phases 0–4 done. Full pixel office with canvas-rendered sprites, cluster zones, tether lines, status dots, selection rings, and bidirectional tab↔sprite sync. Draggable divider with 3 snap states. 58 tests passing.
+**Next action**: Begin Phase 5 — Sprite Animations (bob cycles, shape switching, bubbles, spawn animation, error flash).
 
 ---
 
@@ -28,7 +28,7 @@
 - [x] Phase 1 — Sidebar + Projects
 - [x] Phase 2 — Tab Bar + Agent Hierarchy
 - [x] Phase 3 — Activity Feed
-- [ ] Phase 4 — Pixel Office Panel
+- [x] Phase 4 — Pixel Office Panel
 - [ ] Phase 5 — Sprite Animations
 - [ ] Phase 6 — JSONL Process Integration
 - [ ] Phase 7 — Polish + MVP Ship
@@ -80,8 +80,23 @@ Phase 3 — Activity Feed:
   - 13 mock events across all agents
   - 6 new tests (46 total)
 
+Phase 4 — Pixel Office Panel:
+  - SpriteData: all 4 blob shapes (body, type, shrug, error) + shape(for:) mapping
+  - AppState: officePanelHeight, OfficePanelSnap enum, snapOfficePanel(to:)
+  - DragDividerView: drag gesture with snap-on-release, snap buttons on hover
+  - OfficePanelView: bar with cluster dot groups, restore button when collapsed
+  - OfficeCanvasView: full Canvas renderer with GeometryReader
+    - Cluster layout: roots at 35% height, subs fanned at 70%
+    - Cluster zones: dashed border + tinted bg per agent color
+    - Tether lines: quadratic curves from subs to root
+    - Sprites: pixel-rendered from SpriteData grids at 3.5x scale
+    - Status dots (6px), selection ring (blue), name labels
+    - Active cluster full opacity, inactive 45%, error always full
+    - Bidirectional: click sprite → selectAgent → tab syncs
+  - 12 new tests (58 total)
+
 Blockers: None
-Next: Phase 4 — Pixel Office Panel
+Next: Phase 5 — Sprite Animations
 ```
 
 ---

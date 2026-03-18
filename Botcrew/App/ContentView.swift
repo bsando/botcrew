@@ -31,10 +31,9 @@ struct ContentView: View {
                     .frame(maxHeight: .infinity)
 
                 DragDividerView()
-                    .frame(height: 6)
 
                 OfficePanelView()
-                    .frame(height: 148)
+                    .frame(height: appState.officePanelHeight)
             }
         }
     }

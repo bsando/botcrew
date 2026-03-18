@@ -13,6 +13,23 @@ class AppState {
     var isSidebarCollapsed = false
     var showAddProjectSheet = false
     var showTerminal = false
+    var officePanelHeight: CGFloat = 148 // snap: 26 (collapsed), 148 (ambient), 270 (expanded)
+
+    enum OfficePanelSnap: CGFloat {
+        case collapsed = 26
+        case ambient = 148
+        case expanded = 270
+    }
+
+    var officePanelSnap: OfficePanelSnap {
+        if officePanelHeight <= 60 { return .collapsed }
+        if officePanelHeight >= 220 { return .expanded }
+        return .ambient
+    }
+
+    func snapOfficePanel(to snap: OfficePanelSnap) {
+        officePanelHeight = snap.rawValue
+    }
 
     var selectedProject: Project? {
         projects.first { $0.id == selectedProjectId }

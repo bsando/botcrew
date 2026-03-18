@@ -77,21 +77,21 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 ### Phase 4 — Pixel Office Panel (Week 3–4)
 *Goal: sprites render, animate, and sync with tabs.*
 
-- [ ] `OfficePanelView` wrapper with draggable height divider
-- [ ] Three snap states: collapsed (26px), ambient (148px), expanded (270px)
-- [ ] Snap buttons on divider hover
-- [ ] Panel height persisted per project (`@AppStorage`)
-- [ ] Collapsed bar: project name + cluster dot groups
-- [ ] `OfficeCanvasView`: Canvas/SpriteKit pixel renderer
-- [ ] Sprite pixel data port from `SpriteDesigns.tsx` blob design → Swift arrays
-- [ ] Draw sprites at correct cluster positions (root back-center, subs fanned front)
-- [ ] Dashed tether lines (root → subs, quadratic curve)
-- [ ] Faint cluster zone rects (dashed border, tinted bg)
-- [ ] Status dots (6px, color by status)
-- [ ] Active cluster full opacity, inactive 45%
-- [ ] Selection ring on selected sprite
-- [ ] Sprite click → `AppState.selectedAgent` → tab syncs
-- [ ] Tab selection → sprite highlights (bidirectional ✓)
+- [x] `OfficePanelView` wrapper with draggable height divider
+- [x] Three snap states: collapsed (26px), ambient (148px), expanded (270px)
+- [x] Snap buttons on divider hover (expand/ambient/collapse)
+- [ ] Panel height persisted per project (`@AppStorage`) — deferred, using in-memory state
+- [x] Collapsed bar: project name + cluster dot groups + restore button
+- [x] `OfficeCanvasView`: Canvas pixel renderer with GeometryReader layout
+- [x] Sprite pixel data port — all 4 shapes (body, type, shrug, error) with shape(for:) mapping
+- [x] Draw sprites at correct cluster positions (root back-center at 35%, subs fanned at 70%)
+- [x] Dashed tether lines (root → subs, quadratic curve upward)
+- [x] Faint cluster zone rects (dashed border, tinted bg per agent color)
+- [x] Status dots (6px, color by status, top-right of sprite)
+- [x] Active cluster full opacity, inactive 45% (error sprites always full opacity)
+- [x] Selection ring on selected sprite (blue #0A84FF, 1.5px stroke)
+- [x] Sprite click → `AppState.selectAgent` → tab syncs (invisible tap targets)
+- [x] Tab selection → sprite highlights (bidirectional via shared selectedAgentId)
 
 **Deliverable**: Animated office, click sprite = select tab, click tab = highlight sprite.
 
