@@ -8,9 +8,15 @@ struct ContentView: View {
 
     var body: some View {
         HSplitView {
-            SidebarView()
-                .frame(width: 168)
-                .background(Color(white: 30/255, opacity: 0.7))
+            if !appState.isSidebarCollapsed {
+                SidebarView()
+                    .frame(width: 168)
+                    .background(Color(white: 30/255, opacity: 0.7))
+            } else {
+                CollapsedSidebarView()
+                    .frame(width: 44)
+                    .background(Color(white: 30/255, opacity: 0.7))
+            }
 
             VStack(spacing: 0) {
                 MacFrameView()
