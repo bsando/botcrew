@@ -19,6 +19,8 @@ struct BotcrewApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 900, height: 640)
         .commands {
+            BotcrewCommands(appState: appState)
+
             CommandGroup(after: .toolbar) {
                 Button("Zoom In") {
                     appState.zoomIn()

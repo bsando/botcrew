@@ -22,10 +22,8 @@ struct ContentView: View {
                 MacFrameView()
 
                 if appState.selectedProject == nil {
-                    // Empty state: no project selected
                     EmptyProjectView()
                 } else if appState.rootAgents.isEmpty {
-                    // Empty state: project has no agents
                     EmptyAgentView()
                 } else {
                     TabBarView()
@@ -43,6 +41,81 @@ struct ContentView: View {
                         .frame(height: appState.officePanelHeight)
                 }
             }
+        }
+    }
+}
+
+// MARK: - Keyboard Shortcut Commands
+
+struct BotcrewCommands: Commands {
+    @Bindable var appState: AppState
+
+    var body: some Commands {
+        // Navigation
+        CommandMenu("Navigate") {
+            Button("Previous Project") {
+                appState.selectPreviousProject()
+            }
+            .keyboardShortcut(.upArrow, modifiers: .command)
+
+            Button("Next Project") {
+                appState.selectNextProject()
+            }
+            .keyboardShortcut(.downArrow, modifiers: .command)
+
+            Divider()
+
+            Button("Previous Agent") {
+                appState.selectPreviousAgent()
+            }
+            .keyboardShortcut(.leftArrow, modifiers: .command)
+
+            Button("Next Agent") {
+                appState.selectNextAgent()
+            }
+            .keyboardShortcut(.rightArrow, modifiers: .command)
+
+            Divider()
+
+            Button("Toggle Cluster") {
+                if let rootId = appState.activeClusterId ?? appState.rootAgents.first?.id {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        appState.toggleCluster(rootId)
+                    }
+                }
+            }
+            .keyboardShortcut(.return, modifiers: .command)
+        }
+
+        // View
+        CommandMenu("Panels") {
+            Button("Toggle Sidebar") {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    appState.isSidebarCollapsed.toggle()
+                }
+            }
+            .keyboardShortcut("\\", modifiers: .command)
+
+            Button("Toggle Terminal") {
+                appState.showTerminal.toggle()
+            }
+            .keyboardShortcut("t", modifiers: .command)
+
+            Divider()
+
+            Button("Expand Office Panel") {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    appState.officePanelSnapUp()
+                }
+            }
+            .keyboardShortcut(.upArrow, modifiers: [.command, .shift])
+
+            Button("Collapse Office Panel") {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    appState.officePanelSnapDown()
+                }
+            }
+            .keyboardShortcut(.downArrow, modifiers: [.command, .shift])
         }
     }
 }

@@ -156,6 +156,78 @@ class AppState {
         selectProject(project.id)
     }
 
+    // MARK: - Keyboard Navigation
+
+    /// Select the next project in the list (⌘↓)
+    func selectNextProject() {
+        guard let currentId = selectedProjectId,
+              let idx = projects.firstIndex(where: { $0.id == currentId }) else {
+            selectedProjectId = projects.first?.id
+            return
+        }
+        let nextIdx = (idx + 1) % projects.count
+        selectProject(projects[nextIdx].id)
+    }
+
+    /// Select the previous project in the list (⌘↑)
+    func selectPreviousProject() {
+        guard let currentId = selectedProjectId,
+              let idx = projects.firstIndex(where: { $0.id == currentId }) else {
+            selectedProjectId = projects.last?.id
+            return
+        }
+        let prevIdx = (idx - 1 + projects.count) % projects.count
+        selectProject(projects[prevIdx].id)
+    }
+
+    /// Select the next agent tab (⌘→)
+    func selectNextAgent() {
+        guard let project = selectedProject else { return }
+        let allAgents = project.agents
+        guard !allAgents.isEmpty else { return }
+
+        if let currentId = selectedAgentId,
+           let idx = allAgents.firstIndex(where: { $0.id == currentId }) {
+            let nextIdx = (idx + 1) % allAgents.count
+            selectAgent(allAgents[nextIdx].id)
+        } else {
+            selectAgent(allAgents[0].id)
+        }
+    }
+
+    /// Select the previous agent tab (⌘←)
+    func selectPreviousAgent() {
+        guard let project = selectedProject else { return }
+        let allAgents = project.agents
+        guard !allAgents.isEmpty else { return }
+
+        if let currentId = selectedAgentId,
+           let idx = allAgents.firstIndex(where: { $0.id == currentId }) {
+            let prevIdx = (idx - 1 + allAgents.count) % allAgents.count
+            selectAgent(allAgents[prevIdx].id)
+        } else {
+            selectAgent(allAgents.last!.id)
+        }
+    }
+
+    /// Cycle office panel snap state up (⌘⇧↑)
+    func officePanelSnapUp() {
+        switch officePanelSnap {
+        case .collapsed: snapOfficePanel(to: .ambient)
+        case .ambient: snapOfficePanel(to: .expanded)
+        case .expanded: break
+        }
+    }
+
+    /// Cycle office panel snap state down (⌘⇧↓)
+    func officePanelSnapDown() {
+        switch officePanelSnap {
+        case .expanded: snapOfficePanel(to: .ambient)
+        case .ambient: snapOfficePanel(to: .collapsed)
+        case .collapsed: break
+        }
+    }
+
     // MARK: - Session Management (Phase 6)
 
     /// Start a new Claude Code session for a project
