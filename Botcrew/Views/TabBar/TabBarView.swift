@@ -20,29 +20,33 @@ struct TabBarView: View {
                         let isExpanded = appState.activeClusterId == root.id
 
                         HStack(spacing: 2) {
-                            RootTabView(
-                                agent: root,
-                                subAgents: subs,
-                                isExpanded: isExpanded,
-                                isSelected: appState.selectedAgentId == root.id
-                            )
-                            .onTapGesture {
+                            Button {
                                 withAnimation(.easeInOut(duration: 0.15)) {
                                     appState.toggleCluster(root.id)
                                 }
+                            } label: {
+                                RootTabView(
+                                    agent: root,
+                                    subAgents: subs,
+                                    isExpanded: isExpanded,
+                                    isSelected: appState.selectedAgentId == root.id
+                                )
                             }
+                            .buttonStyle(.plain)
 
                             if isExpanded {
                                 ForEach(subs) { sub in
-                                    SubTabView(
-                                        agent: sub,
-                                        isSelected: appState.selectedAgentId == sub.id
-                                    )
-                                    .onTapGesture {
+                                    Button {
                                         withAnimation(.easeInOut(duration: 0.15)) {
                                             appState.selectAgent(sub.id)
                                         }
+                                    } label: {
+                                        SubTabView(
+                                            agent: sub,
+                                            isSelected: appState.selectedAgentId == sub.id
+                                        )
                                     }
+                                    .buttonStyle(.plain)
                                     .transition(.asymmetric(
                                         insertion: .move(edge: .leading).combined(with: .opacity),
                                         removal: .opacity

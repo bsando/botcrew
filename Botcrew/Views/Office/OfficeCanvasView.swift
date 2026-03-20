@@ -42,19 +42,16 @@ struct OfficeCanvasView: View {
                     drawClusters(context: &context, layouts: layouts, size: size, time: time)
                 }
                 .overlay {
-                    // Invisible tap targets for each sprite
+                    // Invisible tap targets for each sprite (use base position, not animated)
                     ForEach(layouts) { sprite in
                         Color.clear
-                            .frame(width: 40, height: 50)
+                            .frame(width: 56, height: 60)
                             .contentShape(Rectangle())
                             .position(sprite.center)
                             .onTapGesture {
-                                withAnimation(.easeInOut(duration: 0.15)) {
-                                    appState.selectAgent(sprite.id)
-                                    // Error recovery: clicking an errored sprite opens the terminal
-                                    if sprite.agent.status == .error {
-                                        appState.showTerminal = true
-                                    }
+                                appState.selectAgent(sprite.id)
+                                if sprite.agent.status == .error {
+                                    appState.showTerminal = true
                                 }
                             }
                     }
