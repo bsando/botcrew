@@ -10,21 +10,23 @@ struct DragDividerView: View {
 
     var body: some View {
         ZStack {
+            // Visible line (thin)
             Rectangle()
                 .fill(Color.white.opacity(isHovered ? 0.12 : 0.04))
-                .frame(height: 6)
+                .frame(height: 2)
 
             // Snap buttons on hover
             if isHovered {
                 HStack(spacing: 16) {
-                    snapButton("chevron.down.2", snap: .expanded, label: "Expand")
+                    snapButton("chevron.up.2", snap: .expanded, label: "Expand")
                     snapButton("minus", snap: .ambient, label: "Ambient")
-                    snapButton("chevron.up.2", snap: .collapsed, label: "Collapse")
+                    snapButton("chevron.down.2", snap: .collapsed, label: "Collapse")
                 }
                 .transition(.opacity)
             }
         }
-        .frame(height: 6)
+        .frame(height: 20)
+        .contentShape(Rectangle())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovered = hovering

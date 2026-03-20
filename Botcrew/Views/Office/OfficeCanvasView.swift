@@ -322,7 +322,7 @@ struct OfficeCanvasView: View {
 
         switch agent.status {
         case .typing:
-            bubbleText = "writing..."
+            bubbleText = "typing..."
             bubbleColor = Color(hex: 0x34d399)
         case .waiting:
             bubbleText = "waiting"
