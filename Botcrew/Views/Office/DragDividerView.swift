@@ -10,12 +10,28 @@ struct DragDividerView: View {
 
     var body: some View {
         ZStack {
-            // Visible line (thin)
+            // Background fill for the entire divider area
             Rectangle()
-                .fill(Color.white.opacity(isHovered ? 0.12 : 0.04))
-                .frame(height: 2)
+                .fill(Color.white.opacity(isHovered ? 0.06 : 0.02))
 
-            // Snap buttons on hover
+            // Top edge line
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(Color.white.opacity(isHovered ? 0.20 : 0.10))
+                    .frame(height: 1)
+                Spacer()
+            }
+
+            // Grab handle — three small dots
+            HStack(spacing: 3) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Circle()
+                        .fill(Color.white.opacity(isHovered ? 0.45 : 0.20))
+                        .frame(width: 4, height: 4)
+                }
+            }
+
+            // Snap buttons on hover (replace dots)
             if isHovered {
                 HStack(spacing: 16) {
                     snapButton("chevron.up.2", snap: .expanded, label: "Expand")
@@ -25,7 +41,7 @@ struct DragDividerView: View {
                 .transition(.opacity)
             }
         }
-        .frame(height: 20)
+        .frame(height: 26)
         .contentShape(Rectangle())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
@@ -60,8 +76,8 @@ struct DragDividerView: View {
             }
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 7, weight: .bold))
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(.white.opacity(0.5))
         }
         .buttonStyle(.plain)
         .help(label)
