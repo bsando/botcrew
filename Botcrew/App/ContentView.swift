@@ -131,15 +131,15 @@ struct EmptyProjectView: View {
 
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 36))
-                .foregroundStyle(.white.opacity(0.15))
+                .foregroundStyle(.white.opacity(0.35))
 
             Text("No project selected")
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(.white.opacity(0.75))
 
             Text("Add a project from the sidebar to get started")
                 .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.25))
+                .foregroundStyle(.white.opacity(0.50))
 
             Button("Add Project") {
                 appState.showAddProjectSheet = true
@@ -170,16 +170,16 @@ struct EmptyAgentView: View {
 
             Image(systemName: "terminal")
                 .font(.system(size: 36))
-                .foregroundStyle(.white.opacity(0.15))
+                .foregroundStyle(.white.opacity(0.35))
 
             Text("No active sessions")
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(.white.opacity(0.75))
 
             if let project = appState.selectedProject {
                 Text("Start a Claude Code session in \(project.name)")
                     .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.25))
+                    .foregroundStyle(.white.opacity(0.50))
 
                 Button("Start Session") {
                     appState.startSession(projectId: project.id, prompt: "Help me with this project")

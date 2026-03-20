@@ -6,15 +6,26 @@ import SwiftUI
 struct SubTabView: View {
     let agent: Agent
     let isSelected: Bool
+    let isEditing: Bool
+    @Binding var editText: String
+    var onCommitRename: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 5) {
             SpriteThumbnail(bodyColor: agent.bodyColor, size: .sub)
 
-            Text(agent.name)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.75))
-                .lineLimit(1)
+            if isEditing {
+                TextField("Name", text: $editText, onCommit: onCommitRename)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 70)
+            } else {
+                Text(agent.name)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.75))
+                    .lineLimit(1)
+            }
 
             PulsingPip(color: statusColor(agent.status), shouldPulse: agent.status == .error, size: 5)
         }

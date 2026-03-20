@@ -8,6 +8,9 @@ struct RootTabView: View {
     let subAgents: [Agent]
     let isExpanded: Bool
     let isSelected: Bool
+    let isEditing: Bool
+    @Binding var editText: String
+    var onCommitRename: () -> Void = {}
 
     private var hasError: Bool {
         agent.status == .error || subAgents.contains { $0.status == .error }
@@ -19,10 +22,18 @@ struct RootTabView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(agent.name)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .lineLimit(1)
+                    if isEditing {
+                        TextField("Name", text: $editText, onCommit: onCommitRename)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 80)
+                    } else {
+                        Text(agent.name)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .lineLimit(1)
+                    }
 
                     PulsingPip(color: statusColor(agent.status), shouldPulse: agent.status == .error)
                 }

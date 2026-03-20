@@ -5,6 +5,8 @@ import SwiftUI
 
 struct SidebarView: View {
     @Environment(AppState.self) private var appState
+    @State private var editingProjectId: UUID?
+    @State private var projectEditText: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -13,7 +15,7 @@ struct SidebarView: View {
                 Text("PROJECTS")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.66)
-                    .foregroundStyle(.white.opacity(0.25))
+                    .foregroundStyle(.white.opacity(0.50))
 
                 Spacer()
 
@@ -24,7 +26,7 @@ struct SidebarView: View {
                 } label: {
                     Image(systemName: "sidebar.left")
                         .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(.white.opacity(0.55))
                 }
                 .buttonStyle(.plain)
             }
@@ -37,7 +39,7 @@ struct SidebarView: View {
                 VStack(spacing: 12) {
                     Text("No projects")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(.white.opacity(0.55))
                     Button("Add Project") {
                         appState.showAddProjectSheet = true
                     }
@@ -53,7 +55,10 @@ struct SidebarView: View {
                         ForEach(appState.projects) { project in
                             SidebarProjectRow(
                                 project: project,
-                                isSelected: project.id == appState.selectedProjectId
+                                isSelected: project.id == appState.selectedProjectId,
+                                isEditing: editingProjectId == project.id,
+                                editText: $projectEditText,
+                                onCommitRename: { commitProjectRename(project.id) }
                             )
                             .onTapGesture {
                                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -61,6 +66,8 @@ struct SidebarView: View {
                                 }
                             }
                             .contextMenu {
+                                Button("Rename") { startEditingProject(project) }
+                                Divider()
                                 Button("Remove Project") {
                                     appState.removeProject(project.id)
                                 }
@@ -83,7 +90,7 @@ struct SidebarView: View {
                     Text("Add Project")
                         .font(.system(size: 12, weight: .medium))
                 }
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(.white.opacity(0.65))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
@@ -93,6 +100,12 @@ struct SidebarView: View {
             TokenCard()
                 .padding(12)
         }
+        .onTapGesture {
+            // Clicking outside cancels rename
+            if editingProjectId != nil {
+                editingProjectId = nil
+            }
+        }
         .sheet(isPresented: Binding(
             get: { appState.showAddProjectSheet },
             set: { appState.showAddProjectSheet = $0 }
@@ -101,6 +114,16 @@ struct SidebarView: View {
                 .environment(appState)
         }
     }
+
+    private func startEditingProject(_ project: Project) {
+        projectEditText = project.name
+        editingProjectId = project.id
+    }
+
+    private func commitProjectRename(_ projectId: UUID) {
+        appState.renameProject(projectId, to: projectEditText)
+        editingProjectId = nil
+    }
 }
 
 // MARK: - Project Row
@@ -108,6 +131,9 @@ struct SidebarView: View {
 struct SidebarProjectRow: View {
     let project: Project
     let isSelected: Bool
+    var isEditing: Bool = false
+    @Binding var editText: String
+    var onCommitRename: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 8) {
@@ -116,9 +142,16 @@ struct SidebarProjectRow: View {
                 .frame(width: 6, height: 6)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(project.name)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.85))
+                if isEditing {
+                    TextField("Name", text: $editText, onCommit: onCommitRename)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white)
+                } else {
+                    Text(project.name)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.85))
+                }
 
                 if !project.agents.isEmpty {
                     HStack(spacing: 3) {
@@ -186,7 +219,7 @@ struct AddProjectSheet: View {
                 Text("Project Name")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.66)
-                    .foregroundStyle(.white.opacity(0.25))
+                    .foregroundStyle(.white.opacity(0.50))
 
                 TextField("my-project", text: $projectName)
                     .textFieldStyle(.roundedBorder)
@@ -201,7 +234,7 @@ struct AddProjectSheet: View {
                 HStack {
                     Text(selectedPath?.lastPathComponent ?? "No folder selected")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(selectedPath == nil ? 0.35 : 0.85))
+                        .foregroundStyle(.white.opacity(selectedPath == nil ? 0.50 : 0.85))
 
                     Spacer()
 
@@ -263,7 +296,7 @@ struct CollapsedSidebarView: View {
             } label: {
                 Image(systemName: "sidebar.left")
                     .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.35))
+                    .foregroundStyle(.white.opacity(0.55))
             }
             .buttonStyle(.plain)
             .padding(.top, 52)

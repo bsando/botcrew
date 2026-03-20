@@ -5,7 +5,7 @@ import SwiftUI
 
 @main
 struct BotcrewApp: App {
-    @State private var appState = AppState.withMockData()
+    @State private var appState = AppState()
 
     var body: some Scene {
         WindowGroup {

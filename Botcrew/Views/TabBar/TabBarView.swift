@@ -5,6 +5,8 @@ import SwiftUI
 
 struct TabBarView: View {
     @Environment(AppState.self) private var appState
+    @State private var editingAgentId: UUID?
+    @State private var editText: String = ""
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -12,7 +14,7 @@ struct TabBarView: View {
                 if appState.rootAgents.isEmpty {
                     Text("No agents")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(.white.opacity(0.55))
                         .padding(.horizontal, 16)
                 } else {
                     ForEach(appState.rootAgents) { root in
@@ -29,10 +31,17 @@ struct TabBarView: View {
                                     agent: root,
                                     subAgents: subs,
                                     isExpanded: isExpanded,
-                                    isSelected: appState.selectedAgentId == root.id
+                                    isSelected: appState.selectedAgentId == root.id,
+                                    isEditing: editingAgentId == root.id,
+                                    editText: $editText,
+                                    onCommitRename: { commitRename(root.id) }
                                 )
                             }
                             .buttonStyle(.plain)
+                            .onDoubleClick { startEditing(root) }
+                            .contextMenu {
+                                Button("Rename") { startEditing(root) }
+                            }
 
                             if isExpanded {
                                 ForEach(subs) { sub in
@@ -43,10 +52,17 @@ struct TabBarView: View {
                                     } label: {
                                         SubTabView(
                                             agent: sub,
-                                            isSelected: appState.selectedAgentId == sub.id
+                                            isSelected: appState.selectedAgentId == sub.id,
+                                            isEditing: editingAgentId == sub.id,
+                                            editText: $editText,
+                                            onCommitRename: { commitRename(sub.id) }
                                         )
                                     }
                                     .buttonStyle(.plain)
+                                    .onDoubleClick { startEditing(sub) }
+                                    .contextMenu {
+                                        Button("Rename") { startEditing(sub) }
+                                    }
                                     .transition(.asymmetric(
                                         insertion: .move(edge: .leading).combined(with: .opacity),
                                         removal: .opacity
@@ -63,5 +79,36 @@ struct TabBarView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(white: 40/255, opacity: 0.8))
+    }
+
+    private func startEditing(_ agent: Agent) {
+        editText = agent.name
+        editingAgentId = agent.id
+    }
+
+    private func commitRename(_ agentId: UUID) {
+        appState.renameAgent(agentId, to: editText)
+        editingAgentId = nil
+    }
+}
+
+// MARK: - Double Click Modifier
+
+struct DoubleClickModifier: ViewModifier {
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2, perform: action)
+                .allowsHitTesting(true)
+        }
+    }
+}
+
+extension View {
+    func onDoubleClick(perform action: @escaping () -> Void) -> some View {
+        modifier(DoubleClickModifier(action: action))
     }
 }

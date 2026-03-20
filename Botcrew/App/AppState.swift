@@ -156,6 +156,27 @@ class AppState {
         selectProject(project.id)
     }
 
+    // MARK: - Renaming
+
+    func renameAgent(_ agentId: UUID, to newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        for i in projects.indices {
+            if let j = projects[i].agents.firstIndex(where: { $0.id == agentId }) {
+                projects[i].agents[j].name = trimmed
+                return
+            }
+        }
+    }
+
+    func renameProject(_ projectId: UUID, to newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let i = projects.firstIndex(where: { $0.id == projectId }) {
+            projects[i].name = trimmed
+        }
+    }
+
     // MARK: - Keyboard Navigation
 
     /// Select the next project in the list (⌘↓)
