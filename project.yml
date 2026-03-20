@@ -39,3 +39,16 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Botcrew.app/Contents/MacOS/Botcrew"
+
+  BotcrewUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - BotcrewUITests
+    dependencies:
+      - target: Botcrew
+    settings:
+      base:
+        SWIFT_VERSION: "5.10"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        GENERATE_INFOPLIST_FILE: YES
