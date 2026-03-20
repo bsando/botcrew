@@ -14,22 +14,47 @@ class AppState {
     var showAddProjectSheet = false
     var showTerminal = false
     var officePanelHeight: CGFloat = 148 // snap: 26 (collapsed), 148 (ambient), 270 (expanded)
-    var zoomLevel: CGFloat = 1.0 // 0.75 … 1.5, changed via Cmd+/Cmd-
-
-    static let zoomMin: CGFloat = 0.75
-    static let zoomMax: CGFloat = 1.5
-    static let zoomStep: CGFloat = 0.1
+    static let zoomStep: CGFloat = 80 // pixels per step
 
     func zoomIn() {
-        zoomLevel = min(Self.zoomMax, ((zoomLevel + Self.zoomStep) * 100).rounded() / 100)
+        resizeWindow(by: Self.zoomStep)
     }
 
     func zoomOut() {
-        zoomLevel = max(Self.zoomMin, ((zoomLevel - Self.zoomStep) * 100).rounded() / 100)
+        resizeWindow(by: -Self.zoomStep)
     }
 
     func zoomReset() {
-        zoomLevel = 1.0
+        guard let window = NSApplication.shared.windows.first(where: { $0.isKeyWindow }) ?? NSApplication.shared.windows.first else { return }
+        let screen = window.screen ?? NSScreen.main ?? NSScreen.screens[0]
+        let newFrame = NSRect(
+            x: (screen.visibleFrame.width - 900) / 2 + screen.visibleFrame.origin.x,
+            y: (screen.visibleFrame.height - 640) / 2 + screen.visibleFrame.origin.y,
+            width: 900,
+            height: 640
+        )
+        window.setFrame(newFrame, display: true, animate: true)
+    }
+
+    private func resizeWindow(by delta: CGFloat) {
+        guard let window = NSApplication.shared.windows.first(where: { $0.isKeyWindow }) ?? NSApplication.shared.windows.first else { return }
+        let screen = window.screen ?? NSScreen.main ?? NSScreen.screens[0]
+        let maxFrame = screen.visibleFrame
+
+        let aspectRatio: CGFloat = 900.0 / 640.0
+        let deltaH = delta / aspectRatio
+
+        var newFrame = window.frame
+        newFrame.size.width = max(900, min(maxFrame.width, newFrame.size.width + delta))
+        newFrame.size.height = max(640, min(maxFrame.height, newFrame.size.height + deltaH))
+        // Keep centered by adjusting origin
+        newFrame.origin.x -= (newFrame.size.width - window.frame.size.width) / 2
+        newFrame.origin.y -= (newFrame.size.height - window.frame.size.height) / 2
+        // Clamp to screen bounds
+        newFrame.origin.x = max(maxFrame.origin.x, min(maxFrame.maxX - newFrame.size.width, newFrame.origin.x))
+        newFrame.origin.y = max(maxFrame.origin.y, min(maxFrame.maxY - newFrame.size.height, newFrame.origin.y))
+
+        window.setFrame(newFrame, display: true, animate: true)
     }
 
     // MARK: - Process Management (Phase 6)
