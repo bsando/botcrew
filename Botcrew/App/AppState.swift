@@ -14,6 +14,23 @@ class AppState {
     var showAddProjectSheet = false
     var showTerminal = false
     var officePanelHeight: CGFloat = 148 // snap: 26 (collapsed), 148 (ambient), 270 (expanded)
+    var zoomLevel: CGFloat = 1.0 // 0.75 … 1.5, changed via Cmd+/Cmd-
+
+    static let zoomMin: CGFloat = 0.75
+    static let zoomMax: CGFloat = 1.5
+    static let zoomStep: CGFloat = 0.1
+
+    func zoomIn() {
+        zoomLevel = min(Self.zoomMax, ((zoomLevel + Self.zoomStep) * 100).rounded() / 100)
+    }
+
+    func zoomOut() {
+        zoomLevel = max(Self.zoomMin, ((zoomLevel - Self.zoomStep) * 100).rounded() / 100)
+    }
+
+    func zoomReset() {
+        zoomLevel = 1.0
+    }
 
     // MARK: - Process Management (Phase 6)
     var processes: [UUID: ClaudeCodeProcess] = [:]  // projectId → process
