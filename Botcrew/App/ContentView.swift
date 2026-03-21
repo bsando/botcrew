@@ -24,8 +24,8 @@ struct ContentView: View {
                 if appState.selectedProject == nil {
                     EmptyProjectView()
                 } else if appState.rootAgents.isEmpty {
-                    // No agents yet — show prompt input over empty state
-                    Spacer()
+                    // No agents yet — show empty state with start session CTA
+                    EmptyAgentView()
                     PromptInputBar()
                 } else {
                     TabBarView()
@@ -186,28 +186,121 @@ struct EmptyProjectView: View {
 
 struct EmptyAgentView: View {
     @Environment(AppState.self) private var appState
+    @State private var quickPrompt = ""
+    @FocusState private var isFocused: Bool
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 0) {
             Spacer()
 
-            Image(systemName: "terminal")
-                .font(.system(size: 36))
-                .foregroundStyle(.white.opacity(0.35))
+            VStack(spacing: 20) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: 0x0A84FF).opacity(0.08))
+                        .frame(width: 72, height: 72)
+                    Image(systemName: "terminal.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color(hex: 0x0A84FF).opacity(0.6))
+                }
 
-            Text("No active sessions")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.white.opacity(0.75))
+                // Title + subtitle
+                VStack(spacing: 6) {
+                    Text("No active sessions")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.85))
 
-            if appState.selectedProject != nil {
-                Text("Type a message below to start a Claude Code session")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.50))
+                    if let project = appState.selectedProject {
+                        Text("Start a Claude Code session in **\(project.name)**")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.white.opacity(0.50))
+                    }
+                }
+
+                // Quick start buttons
+                VStack(spacing: 10) {
+                    Button {
+                        if let projectId = appState.selectedProjectId {
+                            appState.sendPrompt(projectId: projectId, prompt: "Review this codebase and summarize the architecture")
+                            appState.showTerminal = true
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 11))
+                            Text("Start Session")
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 9)
+                        .background(
+                            RoundedRectangle(cornerRadius: 7)
+                                .fill(Color(hex: 0x0A84FF))
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Text("or type a prompt below")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.30))
+                }
+
+                // Quick action chips
+                HStack(spacing: 8) {
+                    QuickActionChip(icon: "doc.text.magnifyingglass", label: "Review code") {
+                        if let projectId = appState.selectedProjectId {
+                            appState.sendPrompt(projectId: projectId, prompt: "Review this codebase for issues and improvements")
+                            appState.showTerminal = true
+                        }
+                    }
+                    QuickActionChip(icon: "checkmark.circle", label: "Run tests") {
+                        if let projectId = appState.selectedProjectId {
+                            appState.sendPrompt(projectId: projectId, prompt: "Run the test suite and report results")
+                            appState.showTerminal = true
+                        }
+                    }
+                    QuickActionChip(icon: "hammer", label: "Fix build") {
+                        if let projectId = appState.selectedProjectId {
+                            appState.sendPrompt(projectId: projectId, prompt: "Check for and fix any build errors")
+                            appState.showTerminal = true
+                        }
+                    }
+                }
             }
 
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(white: 30/255, opacity: 0.6))
+    }
+}
+
+struct QuickActionChip: View {
+    let icon: String
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 10))
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(.white.opacity(0.55))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(Color.white.opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
