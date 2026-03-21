@@ -16,6 +16,7 @@ struct Project: Identifiable {
     var events: [ActivityEvent]
     var tokenCount: Int
     var estimatedCost: Double
+    var lastSessionId: String? = nil
 }
 
 // MARK: - Persistence (only project metadata, not ephemeral agents/events)
@@ -26,6 +27,7 @@ struct SavedProject: Codable {
     var path: URL
     var tokenCount: Int
     var estimatedCost: Double
+    var lastSessionId: String?
 
     init(from project: Project) {
         self.id = project.id
@@ -33,6 +35,7 @@ struct SavedProject: Codable {
         self.path = project.path
         self.tokenCount = project.tokenCount
         self.estimatedCost = project.estimatedCost
+        self.lastSessionId = project.lastSessionId
     }
 
     func toProject() -> Project {
@@ -44,7 +47,8 @@ struct SavedProject: Codable {
             agents: [],
             events: [],
             tokenCount: tokenCount,
-            estimatedCost: estimatedCost
+            estimatedCost: estimatedCost,
+            lastSessionId: lastSessionId
         )
     }
 }

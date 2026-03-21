@@ -135,6 +135,10 @@ struct BotcrewCommands: Commands {
                 appState.showGitPanel.toggle()
             }
             .keyboardShortcut("g", modifiers: .command)
+
+            Divider()
+
+            Toggle("Sound Notifications", isOn: $appState.soundEnabled)
         }
     }
 }

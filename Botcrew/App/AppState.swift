@@ -18,6 +18,10 @@ class AppState {
 
     init() {
         loadState()
+        // Restore sessions after a short delay to let UI settle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.restoreSessions()
+        }
     }
 
     func zoomIn() {
@@ -103,6 +107,9 @@ class AppState {
 
     // MARK: - Git
     var showGitPanel = false
+
+    // MARK: - Sound Notifications
+    var soundEnabled = true
 
     func resumeSession(projectId: UUID, sessionId: String) {
         guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
@@ -464,10 +471,22 @@ class AppState {
         pendingApproval = nil
     }
 
-    /// Handle stream-json events for cost tracking
+    /// Handle stream-json events for cost tracking and session completion
     private func handleStreamEvent(_ event: [String: Any], projectId: UUID) {
         let type = event["type"] as? String ?? ""
+
+        // Store session ID when we get it
+        if type == "system", let sessionId = event["session_id"] as? String {
+            if let idx = projects.firstIndex(where: { $0.id == projectId }) {
+                projects[idx].lastSessionId = sessionId
+                saveState()
+            }
+        }
+
         guard type == "result" else { return }
+
+        // Session completed — play sound
+        if soundEnabled { SoundService.play(.sessionComplete) }
 
         let cost = event["total_cost_usd"] as? Double ?? 0
         guard cost > 0 else { return }
@@ -572,6 +591,7 @@ class AppState {
                 id: UUID(), agentId: agentId, timestamp: event.timestamp ?? Date(),
                 type: .error, meta: "Error detected"
             ))
+            if soundEnabled { SoundService.play(.error) }
         }
 
         // Update token counts
@@ -623,6 +643,7 @@ class AppState {
 
         // Auto-expand the root cluster to show new sub
         activeClusterId = rootAgentId
+        if soundEnabled { SoundService.play(.subagentSpawned) }
     }
 
     /// Reset the idle timer for an agent (goes idle after 2s of no events)
@@ -672,6 +693,7 @@ class AppState {
         var permissionMode: PermissionMode?
         var promptTemplates: [PromptTemplate]?
         var costHistory: [CostRecord]?
+        var soundEnabled: Bool?
     }
 
     func saveState() {
@@ -682,7 +704,8 @@ class AppState {
             officePanelHeight: officePanelHeight,
             permissionMode: permissionMode,
             promptTemplates: promptTemplates,
-            costHistory: costHistory
+            costHistory: costHistory,
+            soundEnabled: soundEnabled
         )
         do {
             let data = try JSONEncoder().encode(saved)
@@ -704,6 +727,171 @@ class AppState {
         permissionMode = saved.permissionMode ?? .supervised
         promptTemplates = saved.promptTemplates ?? []
         costHistory = saved.costHistory ?? []
+        soundEnabled = saved.soundEnabled ?? true
+    }
+
+    // MARK: - Session Restore
+
+    /// On app launch, scan for recent JSONL sessions and restore agent state
+    private func restoreSessions() {
+        for project in projects {
+            restoreProjectSession(project)
+        }
+    }
+
+    /// Restore a single project's session from its latest JSONL file
+    private func restoreProjectSession(_ project: Project) {
+        guard let idx = projects.firstIndex(where: { $0.id == project.id }) else { return }
+        let projectPath = project.path.path
+
+        // Find the latest session file
+        guard let sessionPath = JSONLWatcher.findLatestSession(for: projectPath) else { return }
+
+        // Check if the session is recent (modified within last 10 minutes)
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: sessionPath),
+              let modDate = attrs[.modificationDate] as? Date,
+              Date().timeIntervalSince(modDate) < 600 else { return }
+
+        // Read all events from the session to reconstruct state
+        let events = JSONLWatcher.readAllEvents(from: sessionPath)
+        guard !events.isEmpty else { return }
+
+        // Create root agent
+        let rootAgent = Agent(
+            id: UUID(),
+            name: "claude",
+            parentId: nil,
+            status: .idle,
+            bodyColor: Color(hex: 0xc0a8ff),
+            shirtColor: Color(hex: 0x5030a0),
+            spawnTime: modDate
+        )
+        projects[idx].agents.append(rootAgent)
+        agentSessionMap[sessionPath] = rootAgent.id
+
+        // Replay events to reconstruct activity and determine final status
+        var lastStatus: AgentStatus = .idle
+        for event in events {
+            guard event.isAssistant else { continue }
+            let toolUses = AgentStateParser.extractToolUses(from: event)
+            for toolUse in toolUses {
+                let eventType = AgentStateParser.eventTypeFromToolUse(toolUse.name)
+                let filePath = AgentStateParser.extractFilePath(from: toolUse.input)
+                lastStatus = AgentStateParser.statusFromToolUse(toolUse.name)
+
+                projects[idx].events.append(ActivityEvent(
+                    id: UUID(),
+                    agentId: rootAgent.id,
+                    timestamp: event.timestamp ?? modDate,
+                    type: eventType,
+                    file: filePath,
+                    meta: toolUse.name
+                ))
+            }
+            if AgentStateParser.containsError(event) {
+                lastStatus = .error
+                projects[idx].events.append(ActivityEvent(
+                    id: UUID(), agentId: rootAgent.id, timestamp: event.timestamp ?? modDate,
+                    type: .error, meta: "Error detected"
+                ))
+            }
+            if let usage = AgentStateParser.extractUsage(from: event) {
+                projects[idx].tokenCount += usage.input + usage.output
+            }
+        }
+
+        // Set final status (idle since session isn't running, unless error)
+        if let agentIdx = projects[idx].agents.firstIndex(where: { $0.id == rootAgent.id }) {
+            projects[idx].agents[agentIdx].status = lastStatus == .error ? .error : .idle
+        }
+        projects[idx].status = lastStatus == .error ? .error : .idle
+
+        // Scan for subagents
+        let subagentsDir = (sessionPath as NSString).deletingPathExtension + "/subagents"
+        if let subFiles = try? FileManager.default.contentsOfDirectory(atPath: subagentsDir) {
+            for file in subFiles where file.hasSuffix(".jsonl") {
+                let subPath = (subagentsDir as NSString).appendingPathComponent(file)
+                restoreSubagent(at: subPath, projectIdx: idx, rootAgentId: rootAgent.id)
+            }
+        }
+
+        // Extract session ID from the filename
+        let sessionId = (sessionPath as NSString).lastPathComponent
+            .replacingOccurrences(of: ".jsonl", with: "")
+        projects[idx].lastSessionId = sessionId
+
+        // Set up watcher for live updates going forward
+        let watcher = JSONLWatcher()
+        watcher.onEvent = { [weak self] filePath, event in
+            self?.handleJSONLEvent(event, filePath: filePath, projectId: project.id)
+        }
+        watcher.onNewSubagent = { [weak self] filePath in
+            self?.handleNewSubagent(filePath: filePath, projectId: project.id, rootAgentId: rootAgent.id)
+        }
+        watcher.watchFile(at: sessionPath)
+        watcher.watchSubagentDirectory(at: sessionPath)
+        watchers[project.id] = watcher
+
+        // Auto-select if this was the selected project
+        if selectedProjectId == project.id {
+            selectAgent(rootAgent.id)
+        }
+    }
+
+    /// Restore a subagent from its JSONL file
+    private func restoreSubagent(at filePath: String, projectIdx: Int, rootAgentId: UUID) {
+        let subColors: [(body: UInt32, shirt: UInt32)] = [
+            (0x80e8a0, 0x0a4020),
+            (0xffd080, 0x6a3800),
+            (0x80c8ff, 0x0a3060),
+            (0xffb090, 0x802010),
+        ]
+        let colorIdx = projects[projectIdx].agents.count % subColors.count
+        let colors = subColors[colorIdx]
+
+        let name = (filePath as NSString).lastPathComponent
+            .replacingOccurrences(of: ".jsonl", with: "")
+
+        let subAgent = Agent(
+            id: UUID(),
+            name: name,
+            parentId: rootAgentId,
+            status: .idle,
+            bodyColor: Color(hex: colors.body),
+            shirtColor: Color(hex: colors.shirt),
+            spawnTime: Date()
+        )
+        projects[projectIdx].agents.append(subAgent)
+        agentSessionMap[filePath] = subAgent.id
+
+        // Replay subagent events
+        let events = JSONLWatcher.readAllEvents(from: filePath)
+        var lastStatus: AgentStatus = .idle
+        for event in events {
+            guard event.isAssistant else { continue }
+            let toolUses = AgentStateParser.extractToolUses(from: event)
+            for toolUse in toolUses {
+                let eventType = AgentStateParser.eventTypeFromToolUse(toolUse.name)
+                let fp = AgentStateParser.extractFilePath(from: toolUse.input)
+                lastStatus = AgentStateParser.statusFromToolUse(toolUse.name)
+
+                projects[projectIdx].events.append(ActivityEvent(
+                    id: UUID(),
+                    agentId: subAgent.id,
+                    timestamp: event.timestamp ?? Date(),
+                    type: eventType,
+                    file: fp,
+                    meta: toolUse.name
+                ))
+            }
+            if AgentStateParser.containsError(event) {
+                lastStatus = .error
+            }
+        }
+
+        if let agentIdx = projects[projectIdx].agents.firstIndex(where: { $0.id == subAgent.id }) {
+            projects[projectIdx].agents[agentIdx].status = lastStatus == .error ? .error : .idle
+        }
     }
 
     static func withMockData() -> AppState {
