@@ -206,9 +206,7 @@ class ClaudeCodeProcess: Identifiable {
                         onPermissionDenials?(sessionId, denials)
                     }
                 }
-                if let cost = json["total_cost_usd"] as? Double {
-                    appendToBuffer(["", String(format: "Cost: $%.4f", cost)])
-                }
+                // Cost tracked silently via onStreamEvent → AppState.recordCost
 
             default:
                 break
