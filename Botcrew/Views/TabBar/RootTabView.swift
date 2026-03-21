@@ -11,6 +11,7 @@ struct RootTabView: View {
     let isEditing: Bool
     @Binding var editText: String
     var onCommitRename: () -> Void = {}
+    @FocusState private var isFocused: Bool
 
     private var hasError: Bool {
         agent.status == .error || subAgents.contains { $0.status == .error }
@@ -28,6 +29,8 @@ struct RootTabView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.white)
                             .frame(width: 80)
+                            .focused($isFocused)
+                            .onAppear { isFocused = true }
                     } else {
                         Text(agent.name)
                             .font(.system(size: 12, weight: .medium))

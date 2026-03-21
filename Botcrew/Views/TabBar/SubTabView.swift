@@ -9,6 +9,7 @@ struct SubTabView: View {
     let isEditing: Bool
     @Binding var editText: String
     var onCommitRename: () -> Void = {}
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: 5) {
@@ -20,6 +21,8 @@ struct SubTabView: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.white)
                     .frame(width: 70)
+                    .focused($isFocused)
+                    .onAppear { isFocused = true }
             } else {
                 Text(agent.name)
                     .font(.system(size: 11, weight: .medium))

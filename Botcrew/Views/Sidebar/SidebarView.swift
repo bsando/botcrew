@@ -54,14 +54,16 @@ struct SidebarView: View {
                 ScrollView {
                     LazyVStack(spacing: 2) {
                         ForEach(appState.projects) { project in
+                            let isEditingThis = editingProjectId == project.id
                             SidebarProjectRow(
                                 project: project,
                                 isSelected: project.id == appState.selectedProjectId,
-                                isEditing: editingProjectId == project.id,
+                                isEditing: isEditingThis,
                                 editText: $projectEditText,
                                 onCommitRename: { commitProjectRename(project.id) }
                             )
                             .onTapGesture {
+                                guard !isEditingThis else { return }
                                 withAnimation(.easeInOut(duration: 0.15)) {
                                     appState.selectProject(project.id)
                                 }
@@ -104,10 +106,14 @@ struct SidebarView: View {
             TokenCard()
                 .padding(12)
         }
-        .onTapGesture {
-            // Clicking outside cancels rename
+        .background {
+            // Invisible background to catch clicks outside rows and cancel rename
             if editingProjectId != nil {
-                editingProjectId = nil
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        editingProjectId = nil
+                    }
             }
         }
         .sheet(isPresented: Binding(
@@ -147,6 +153,7 @@ struct SidebarProjectRow: View {
     var isEditing: Bool = false
     @Binding var editText: String
     var onCommitRename: () -> Void = {}
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: 8) {
@@ -160,6 +167,8 @@ struct SidebarProjectRow: View {
                         .textFieldStyle(.plain)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.white)
+                        .focused($isFocused)
+                        .onAppear { isFocused = true }
                 } else {
                     Text(project.name)
                         .font(.system(size: 13, weight: .medium))
