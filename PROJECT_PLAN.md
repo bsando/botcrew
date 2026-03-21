@@ -2,7 +2,7 @@
 
 Native macOS app for visualizing and managing Claude Code multi-agent sessions. Pixel art office, activity feeds, bidirectional tab/sprite sync.
 
-**Status**: Design complete → Build phase  
+**Status**: Post-MVP — all 7 phases + 5 feature sprint complete
 **Stack**: SwiftUI, SpriteKit/Canvas, Foundation Process  
 **Reference**: Figma prototype (React/TypeScript) in `CLAUDE_CODE_REFERENCE.md`
 
@@ -157,54 +157,24 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 
 ---
 
-## Data models (Swift)
+### Post-MVP Feature Sprint
 
-```swift
-struct Project: Identifiable {
-    let id: UUID
-    var name: String
-    var path: URL
-    var status: ProjectStatus  // active, idle, error
-    var agents: [Agent]
-    var tokenCount: Int
-    var estimatedCost: Double
-}
+Five features added after Phase 7 to make Botcrew a one-stop Claude Code management tool:
 
-struct Agent: Identifiable {
-    let id: UUID
-    var name: String
-    var parentId: UUID?         // nil = root orchestrator
-    var status: AgentStatus     // typing, reading, waiting, idle, error
-    var bodyColor: Color
-    var shirtColor: Color
-    var spawnTime: Date
-}
+- [x] **Structured Feed** — ToolCardView with collapsible cards, diff blocks, code blocks, SF Symbol icons
+- [x] **Session History** — Browse and resume past JSONL sessions via SessionScanner
+- [x] **Cost Dashboard** — Daily chart (SwiftUI Charts), per-project breakdown, token tracking
+- [x] **Git Integration** — Status, diff viewer, commit form via GitService (⌘G)
+- [x] **Prompt Templates** — 6 built-in + custom templates with categories and search
 
-enum AgentStatus {
-    case typing, reading, waiting, idle, error
-}
-
-struct ActivityEvent: Identifiable {
-    let id: UUID
-    let agentId: UUID
-    let timestamp: Date
-    let type: EventType
-    var file: String?
-    var meta: String?
-}
-
-enum EventType {
-    case spawn, write, read, bash, thinking, error
-}
-
-class AppState: ObservableObject {
-    @Published var projects: [Project] = []
-    @Published var selectedProjectId: UUID?
-    @Published var selectedAgentId: UUID?
-    @Published var activeClusterId: UUID?   // which root cluster is expanded in tab bar
-    @Published var openTerminalIds: [UUID] = []  // up to 4
-}
-```
+Additional post-MVP additions:
+- [x] Prompt input bar with permission mode picker (auto/supervised/safe)
+- [x] Tool approval banner for permission denials
+- [x] Stream-JSON protocol support in ClaudeCodeProcess
+- [x] Inline renaming for agents, subagents, and projects
+- [x] State persistence (projects, settings, cost history)
+- [x] Keyboard shortcuts (⌘↑↓ projects, ⌘←→ agents, ⌘\ sidebar, ⌘T terminal, ⌘G git)
+- [x] Improved contrast across all UI elements
 
 ---
 
@@ -212,43 +182,53 @@ class AppState: ObservableObject {
 
 ```
 Botcrew/
-├── CLAUDE.md                     ← you are here
-├── PROJECT_PLAN.md               ← this file
-├── CLAUDE_CODE_REFERENCE.md      ← Figma React prototype reference
-├── Botcrew.xcodeproj/
-└── Botcrew/
-    ├── App/
-    │   ├── BotcrewApp.swift
-    │   ├── AppState.swift
-    │   └── ContentView.swift
-    ├── Models/
-    │   ├── Project.swift
-    │   ├── Agent.swift
-    │   └── ActivityEvent.swift
-    ├── Views/
-    │   ├── Sidebar/
-    │   │   ├── SidebarView.swift
-    │   │   └── TokenCard.swift
-    │   ├── TabBar/
-    │   │   ├── TabBarView.swift
-    │   │   ├── RootTabView.swift
-    │   │   └── SubTabView.swift
-    │   ├── Feed/
-    │   │   ├── ActivityFeedView.swift
-    │   │   ├── FeedHeaderView.swift
-    │   │   ├── EventRowView.swift
-    │   │   └── TerminalView.swift
-    │   └── Office/
-    │       ├── OfficePanelView.swift
-    │       ├── OfficeCanvasView.swift
-    │       ├── DragDividerView.swift
-    │       └── SpriteRenderer.swift
-    ├── Services/
-    │   ├── ClaudeCodeProcess.swift   ← process lifecycle + ring buffer
-    │   ├── JSONLWatcher.swift         ← transcript file watching
-    │   └── AgentStateParser.swift    ← event parsing → agent state
-    └── Assets/
-        └── SpriteData.swift          ← pixel arrays ported from SpriteDesigns.tsx
+├── App/
+│   ├── BotcrewApp.swift            # Entry point, window, commands
+│   ├── AppState.swift              # Central state + persistence + process mgmt
+│   └── ContentView.swift           # Main layout + BotcrewCommands
+├── Models/
+│   ├── Project.swift               # Project + SavedProject (Codable)
+│   ├── Agent.swift                 # Agent model + status enum
+│   ├── ActivityEvent.swift         # Feed events with structured tool data
+│   ├── CostRecord.swift            # Per-session cost tracking
+│   ├── GitStatus.swift             # Git file changes + info
+│   ├── PromptTemplate.swift        # Built-in + custom templates
+│   ├── SessionInfo.swift           # Past session metadata
+│   └── ToolApproval.swift          # Permission denial handling
+├── Views/
+│   ├── Sidebar/
+│   │   ├── SidebarView.swift       # Project list with inline renaming
+│   │   ├── TokenCard.swift         # Token/cost display (clickable → dashboard)
+│   │   ├── CostDashboardView.swift # Cost chart + breakdown sheet
+│   │   └── SessionHistoryView.swift # Past sessions list with resume
+│   ├── TabBar/
+│   │   ├── TabBarView.swift        # Root/sub tabs with renaming
+│   │   ├── RootTabView.swift       # Root tab with sprite thumbnail
+│   │   └── SubTabView.swift        # Sub tab with sprite thumbnail
+│   ├── Feed/
+│   │   ├── ActivityFeedView.swift  # Scoped event list
+│   │   ├── FeedHeaderView.swift    # Agent info + toggle
+│   │   ├── ToolCardView.swift      # Collapsible tool cards with diffs
+│   │   ├── EventRowView.swift      # Legacy event row (replaced by ToolCardView)
+│   │   ├── TerminalView.swift      # Raw process output
+│   │   ├── PromptInputBar.swift    # Prompt field + permission mode + templates
+│   │   ├── PromptTemplateSheet.swift # Template browser + custom creation
+│   │   └── ToolApprovalBanner.swift  # Permission denial approve/deny
+│   ├── Office/
+│   │   ├── OfficePanelView.swift   # Panel wrapper + collapsed bar
+│   │   ├── OfficeCanvasView.swift  # Canvas pixel renderer
+│   │   ├── DragDividerView.swift   # Snap divider between feed/office
+│   │   └── SpriteRenderer.swift    # Sprite drawing helpers
+│   └── Git/
+│       └── GitPanelView.swift      # Git status, diff, commit sheet
+├── Services/
+│   ├── ClaudeCodeProcess.swift     # Process lifecycle + stream-JSON protocol
+│   ├── JSONLWatcher.swift          # DispatchSource transcript watching
+│   ├── AgentStateParser.swift      # Event parsing → agent state
+│   ├── SessionScanner.swift        # Past JSONL session scanning
+│   └── GitService.swift            # Git CLI operations via Process
+└── Assets/
+    └── SpriteData.swift            # Pixel arrays (blob sprites)
 ```
 
 ---
@@ -322,9 +302,9 @@ The React/TypeScript prototype in `CLAUDE_CODE_REFERENCE.md` (v2) uses macOS Big
 
 ---
 
-## Open questions before Phase 6
+## Resolved questions
 
-1. **JSONL path**: What is the actual transcript file path on your machine? Run `find ~/.claude -name "*.jsonl" | head -5` to find it.
-2. **Process attach vs spawn**: Does Botcrew spawn new `claude` processes, or attach to existing ones running in terminal? Spawn is cleaner for v1.
-3. **Sprite design**: Figma went with blob sprites. Stick with blob or go back to humanoid pixel sprites from our design session? Both pixel data sets exist.
-4. **Agent colors**: Fixed palette (role-based) or assigned dynamically per session?
+1. **JSONL path**: `~/.claude/projects/<path-hash>/<session-uuid>.jsonl` — path hash is project path with `/` → `-`
+2. **Process attach vs spawn**: Spawn — Botcrew launches Claude Code sessions via Foundation.Process
+3. **Sprite design**: Blob (Figma v2) — implemented
+4. **Agent colors**: Fixed role-based palette with dynamic cycling for subagents within a session

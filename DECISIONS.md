@@ -122,18 +122,33 @@ Extracted from design session. Read this before making any architectural or UX c
 **Known issue**: Agent-terminal sync can desync when terminals are rapidly opened/closed. Document but don't block on it.
 
 ### Spawn vs attach
-**Decision** (pending): Does Botcrew spawn new `claude` processes, or attach to existing terminal sessions?  
-**Recommended**: Spawn for v1. Cleaner process lifecycle, no dependency on terminal emulator state.  
-**Open**: Confirm before Phase 6.
+**Decision**: Spawn — Botcrew launches Claude Code sessions itself via Foundation.Process.
+**Rationale**: Cleaner process lifecycle, no dependency on terminal emulator state. Confirmed in Phase 6.
+
+### Permission mode system
+**Decision**: Three modes — auto (skip all permissions), supervised (default — ask user), safe (restrict to read-only tools).
+**Rationale**: Different workflows need different trust levels. Auto for trusted repos, supervised for normal work, safe for exploring unfamiliar code.
+**Implementation**: Maps to Claude CLI flags: `--dangerously-skip-permissions`, `--permission-mode default`, `--allowedTools "Read Glob Grep LSP"`.
+
+### Stream-JSON protocol
+**Decision**: Use `--output-format stream-json --verbose` instead of raw stdout parsing.
+**Rationale**: Structured events with types (system, assistant, result) are far more reliable than heuristic stdout parsing. Permission denials come back as `permission_denials` array in result events.
+
+### Git integration
+**Decision**: Shell-out to `/usr/bin/git` via Foundation.Process for status/diff/commit.
+**Rationale**: Simple, reliable, no git library dependency. Matches how the rest of the app manages processes.
+
+### State persistence
+**Decision**: Codable JSON file at `~/Library/Application Support/Botcrew/botcrew-state.json`.
+**Rationale**: Simple, no CoreData overhead. Stores projects, settings, permission mode, templates, and cost history. Ephemeral state (agents, events, processes) not persisted.
 
 ---
 
 ## Deferred decisions
 
-- **Git panel**: Deferred to v2. Would show file changes, branch, diff inline.
 - **Split view**: Deferred to v2. Two projects side by side.
 - **Sound notifications**: Deferred to v2. Chime on agent completion.
 - **Custom sprite skins**: Deferred to v2. Per-agent character selection.
 - **Office layout editor**: Deferred to v2. Custom furniture, floor tiles.
 - **Light mode**: Deferred to v2.
-- **Agent color assignment**: Fixed palette (role-based) vs dynamic assignment. Undecided — resolve in Phase 4.
+- **Agent color assignment**: Fixed palette (role-based) — decided, using colors from CLAUDE.md. Dynamic cycling for subagents within a session.

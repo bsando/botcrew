@@ -125,7 +125,80 @@ Run through these after any significant change. Open the app in Xcode (Cmd+R).
 
 ### Empty States
 - [ ] No project selected → folder icon + "Add Project" button
-- [ ] Project with no agents → terminal icon + "Start Session" button
+- [ ] Project with no agents → prompt input bar visible
+
+### Prompt Input Bar
+- [ ] Text field visible at bottom of main content area
+- [ ] Permission mode badge (colored: red=auto, amber=supervised, green=safe)
+- [ ] Click permission badge → picker with mode descriptions
+- [ ] Template button → opens popover with template browser
+- [ ] Send button sends prompt, shows spinner while working
+- [ ] Placeholder text changes based on state (working/follow-up/initial)
+
+### Tool Approval Banner
+- [ ] When Claude requests a denied tool → amber banner appears
+- [ ] Banner shows tool name, summary, expandable detail
+- [ ] "Deny" dismisses the banner
+- [ ] "Allow & Continue" re-runs with allowed tools
+
+### Structured Feed (ToolCardView)
+- [ ] Events show as collapsible cards with SF Symbol icons
+- [ ] Write events show green icon, read blue, bash orange, etc.
+- [ ] Click card → expands to show file content, diffs, or command output
+- [ ] Diff blocks show red (removed) and green (added) lines
+
+### Session History
+- [ ] Right-click project → "Session History..." in context menu
+- [ ] Sheet lists past JSONL sessions with date, summary, file size
+- [ ] "Resume" button launches claude with --resume
+
+### Cost Dashboard
+- [ ] Click token card in sidebar → cost dashboard sheet opens
+- [ ] Today and all-time cost cards visible
+- [ ] 7-day bar chart renders (SwiftUI Charts)
+- [ ] Per-project cost breakdown listed
+
+### Git Integration
+- [ ] ⌘G opens git panel sheet
+- [ ] Branch name displayed in header
+- [ ] Changed files listed with status color (M=yellow, A=green, D=red, ??=gray)
+- [ ] Checkboxes for selecting files to commit
+- [ ] "Select All" / "Deselect All" toggle works
+- [ ] "diff" button on each file shows inline diff
+- [ ] Commit message field + commit button (disabled when empty)
+
+### Prompt Templates
+- [ ] Template button in prompt bar opens popover
+- [ ] 6 built-in templates visible
+- [ ] Search field filters templates
+- [ ] Category filter pills work
+- [ ] Selecting template fills prompt bar text
+- [ ] "New Template" form with name, prompt, category
+
+### Inline Renaming
+- [ ] Double-click project name in sidebar → editable text field
+- [ ] Double-click agent name in tab bar → editable text field
+- [ ] Right-click → "Rename" context menu option
+- [ ] Press Enter or click away to commit rename
+- [ ] Press Escape to cancel
+
+### State Persistence
+- [ ] Close and reopen app → projects list preserved
+- [ ] Permission mode setting preserved
+- [ ] Custom templates preserved
+- [ ] Cost history preserved
+
+### Keyboard Shortcuts
+- [ ] ⌘↑ → previous project
+- [ ] ⌘↓ → next project
+- [ ] ⌘← → previous agent
+- [ ] ⌘→ → next agent
+- [ ] ⌘Return → toggle cluster
+- [ ] ⌘\ → toggle sidebar
+- [ ] ⌘T → toggle terminal
+- [ ] ⌘G → git panel
+- [ ] ⌘Shift↑ → expand office panel
+- [ ] ⌘Shift↓ → collapse office panel
 
 ### Performance
 - [ ] Office canvas smooth at 60fps with mock data (6 agents)

@@ -338,26 +338,37 @@ Token counts: parse `usage.input_tokens` + `usage.output_tokens` fields.
 
 ---
 
-## MVP scope (v0.1)
+## MVP scope (v0.1) — COMPLETE
 
-In scope:
-- [ ] Project sidebar (add/remove, status dots, collapse)
-- [ ] Agent tabs (root + sub clusters, expand/collapse, sprite thumbnails)
-- [ ] Activity feed (structured events from JSONL)
-- [ ] Terminal view (raw output, toggle with feed)
-- [ ] Pixel office panel (sprites, tethers, clusters, desks)
-- [ ] Sprite animations (typing, waiting, idle, spawn, error)
-- [ ] Error state (all four signals)
-- [ ] Draggable panel (three snap states, remembered per project)
-- [ ] Token/cost tracking (per-session from JSONL)
-- [ ] Multi-terminal grid (1–4, 2×2 layout)
+All items shipped:
+- [x] Project sidebar (add/remove, status dots, collapse, inline renaming)
+- [x] Agent tabs (root + sub clusters, expand/collapse, sprite thumbnails, inline renaming)
+- [x] Activity feed (structured tool cards with diffs and code blocks)
+- [x] Terminal view (raw output, toggle with feed)
+- [x] Pixel office panel (sprites, tethers, clusters, desks)
+- [x] Sprite animations (typing, waiting, idle, spawn, error)
+- [x] Error state (all four signals)
+- [x] Draggable panel (three snap states, remembered per project)
+- [x] Token/cost tracking (per-session from JSONL)
+- [x] Multi-terminal grid (1–4, 2×2 layout)
+
+Post-MVP features (shipped):
+- [x] Prompt input bar with permission mode picker (auto/supervised/safe)
+- [x] Tool approval banner for permission denials
+- [x] Session history + resume via `--resume` flag
+- [x] Cost dashboard with 7-day chart (SwiftUI Charts)
+- [x] Git integration panel — status, diff, commit (⌘G)
+- [x] Prompt templates (6 built-in + custom with categories)
+- [x] State persistence across launches (Codable JSON)
+- [x] Keyboard shortcuts (⌘↑↓←→, ⌘\, ⌘T, ⌘G)
+- [x] Stream-JSON protocol support (`--output-format stream-json --verbose`)
 
 Deferred to v2:
-- Git panel (file changes, branch, diff)
 - Split view (two projects side by side)
 - Sound notifications
 - Office layout editor
 - Custom sprite skins
+- Light mode
 
 ---
 

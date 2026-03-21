@@ -6,9 +6,9 @@
 
 ## Current state
 
-**Phase**: 7 — Complete (v0.1 MVP)
-**Status**: All 7 phases done. Expanded ops mode with multi-terminal grid, error recovery UI, empty states for no-project and no-agent flows. 103 tests passing.
-**Next action**: Manual testing, then real-world usage as daily driver.
+**Phase**: Post-MVP feature sprint complete
+**Status**: All 7 build phases done + 5 post-MVP features added. App is a fully functional Claude Code management tool with prompt input, permission controls, structured feed, session history, cost dashboard, git integration, and prompt templates.
+**Next action**: Manual testing, daily driver usage, bug fixes as needed.
 
 ---
 
@@ -179,6 +179,55 @@ Deferred to v2:
 
 Blockers: None
 Status: v0.1 MVP complete
+```
+
+### Session 3 — 2026-03-17
+
+```
+Post-MVP feature sprint:
+
+Wired keyboard shortcuts into BotcrewApp.swift (⌘↑↓ projects, ⌘←→ agents,
+  ⌘\ sidebar, ⌘T terminal, ⌘↑↓+Shift office panel snap).
+Switched from mock data to real data (AppState() instead of .withMockData()).
+Fixed low contrast UI (bumped opacity across empty states, sidebar, collapsed sidebar).
+Added inline renaming for agents, subagents, and projects (double-click-to-edit).
+Added state persistence (~/Library/Application Support/Botcrew/botcrew-state.json).
+Added prompt input bar with permission mode picker (auto/supervised/safe).
+Added tool approval banner for permission denials (deny/allow & continue).
+Stream-JSON protocol support in ClaudeCodeProcess (--output-format stream-json --verbose).
+
+Feature 1 — Structured Feed:
+  - ToolCardView replaces EventRowView with collapsible cards
+  - SF Symbol icons, color-coded by type (green write, blue read, orange bash, etc.)
+  - DiffBlock shows red removed / green added lines
+  - CodeBlock with monospaced content and line truncation
+
+Feature 2 — Session History:
+  - SessionScanner scans ~/.claude/projects/<hash>/ for JSONL files
+  - SessionHistoryView lists past sessions with date, summary, file size
+  - Resume button launches claude with --resume <id>
+  - Accessible from project context menu
+
+Feature 3 — Cost Dashboard:
+  - CostDashboardView with today/all-time cost cards
+  - 7-day bar chart using SwiftUI Charts
+  - Per-project cost breakdown
+  - Token card in sidebar now clickable to open dashboard
+
+Feature 4 — Git Integration:
+  - GitService: status, diff, commit via /usr/bin/git Process
+  - GitPanelView with branch display, file list, checkboxes, diff viewer
+  - Commit form with select all/deselect all
+  - ⌘G keyboard shortcut to open git panel
+
+Feature 5 — Prompt Templates:
+  - 6 built-in templates (fix tests, review bugs, refactor, docs, debug, unit tests)
+  - Custom template creation with categories
+  - Template browser with search and category filter
+  - Selecting template fills prompt bar
+
+Blockers: None
+Status: Post-MVP feature sprint complete
 ```
 
 ---
