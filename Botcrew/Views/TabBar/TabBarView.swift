@@ -22,46 +22,42 @@ struct TabBarView: View {
                         let isExpanded = appState.activeClusterId == root.id
 
                         HStack(spacing: 2) {
-                            let isEditingRoot = editingAgentId == root.id
-
-                            RootTabView(
-                                agent: root,
-                                subAgents: subs,
-                                isExpanded: isExpanded,
-                                isSelected: appState.selectedAgentId == root.id,
-                                isEditing: isEditingRoot,
-                                editText: $editText,
-                                onCommitRename: { commitRename(root.id) }
-                            )
-                            .onTapGesture {
-                                guard !isEditingRoot else { return }
+                            Button {
                                 withAnimation(.easeInOut(duration: 0.15)) {
                                     appState.toggleCluster(root.id)
                                 }
+                            } label: {
+                                RootTabView(
+                                    agent: root,
+                                    subAgents: subs,
+                                    isExpanded: isExpanded,
+                                    isSelected: appState.selectedAgentId == root.id,
+                                    isEditing: editingAgentId == root.id,
+                                    editText: $editText,
+                                    onCommitRename: { commitRename(root.id) }
+                                )
                             }
-                            .onDoubleClick(disabled: isEditingRoot) { startEditing(root) }
+                            .buttonStyle(.plain)
                             .contextMenu {
                                 Button("Rename") { startEditing(root) }
                             }
 
                             if isExpanded {
                                 ForEach(subs) { sub in
-                                    let isEditingSub = editingAgentId == sub.id
-
-                                    SubTabView(
-                                        agent: sub,
-                                        isSelected: appState.selectedAgentId == sub.id,
-                                        isEditing: isEditingSub,
-                                        editText: $editText,
-                                        onCommitRename: { commitRename(sub.id) }
-                                    )
-                                    .onTapGesture {
-                                        guard !isEditingSub else { return }
+                                    Button {
                                         withAnimation(.easeInOut(duration: 0.15)) {
                                             appState.selectAgent(sub.id)
                                         }
+                                    } label: {
+                                        SubTabView(
+                                            agent: sub,
+                                            isSelected: appState.selectedAgentId == sub.id,
+                                            isEditing: editingAgentId == sub.id,
+                                            editText: $editText,
+                                            onCommitRename: { commitRename(sub.id) }
+                                        )
                                     }
-                                    .onDoubleClick(disabled: isEditingSub) { startEditing(sub) }
+                                    .buttonStyle(.plain)
                                     .contextMenu {
                                         Button("Rename") { startEditing(sub) }
                                     }
@@ -91,29 +87,5 @@ struct TabBarView: View {
     private func commitRename(_ agentId: UUID) {
         appState.renameAgent(agentId, to: editText)
         editingAgentId = nil
-    }
-}
-
-// MARK: - Double Click Modifier
-
-struct DoubleClickModifier: ViewModifier {
-    let isDisabled: Bool
-    let action: () -> Void
-
-    func body(content: Content) -> some View {
-        content.overlay {
-            if !isDisabled {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2, perform: action)
-                    .allowsHitTesting(true)
-            }
-        }
-    }
-}
-
-extension View {
-    func onDoubleClick(disabled: Bool = false, perform action: @escaping () -> Void) -> some View {
-        modifier(DoubleClickModifier(isDisabled: disabled, action: action))
     }
 }

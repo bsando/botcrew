@@ -12,11 +12,13 @@ class ClaudeCodeProcess: Identifiable {
     let projectPath: URL
 
     private(set) var isRunning = false
-    private(set) var ringBuffer: [String] = []
     private(set) var exitCode: Int32?
     private(set) var hasRanBefore = false
     private(set) var lastSessionId: String?
     private(set) var lastPermissionDenials: [[String: Any]] = []
+
+    /// Terminal output snapshot — updated at most every 200ms
+    private(set) var terminalOutput: String = ""
 
     /// Callback when permission denials are detected
     var onPermissionDenials: ((_ sessionId: String, _ denials: [[String: Any]]) -> Void)?
@@ -28,6 +30,11 @@ class ClaudeCodeProcess: Identifiable {
     private var stdoutPipe: Pipe?
     private var stderrPipe: Pipe?
     private let bufferCapacity = 2000
+
+    // Ring buffer internals — NOT observed (mutations don't trigger SwiftUI updates)
+    private var _ringBuffer: [String] = []
+    private var _bufferDirty = false
+    private var _flushTimer: Timer?
 
     /// Path to the claude CLI
     static let claudePath: String = {
@@ -100,6 +107,9 @@ class ClaudeCodeProcess: Identifiable {
         self.process = proc
         self.lastPermissionDenials = []
 
+        // Start throttled flush timer
+        startFlushTimer()
+
         // Parse stream-json from stdout
         stdout.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
@@ -130,6 +140,9 @@ class ClaudeCodeProcess: Identifiable {
                 self?.exitCode = proc.terminationStatus
                 self?.stdoutPipe?.fileHandleForReading.readabilityHandler = nil
                 self?.stderrPipe?.fileHandleForReading.readabilityHandler = nil
+                self?.flushBuffer() // Final flush
+                self?._flushTimer?.invalidate()
+                self?._flushTimer = nil
             }
         }
 
@@ -150,9 +163,20 @@ class ClaudeCodeProcess: Identifiable {
         proc.terminate()
     }
 
-    /// Get the full terminal output as a single string
-    var terminalOutput: String {
-        ringBuffer.joined(separator: "\n")
+    // MARK: - Throttled buffer flush
+
+    private func startFlushTimer() {
+        _flushTimer?.invalidate()
+        _flushTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+            self?.flushBuffer()
+        }
+    }
+
+    /// Push ring buffer contents to the observed terminalOutput property
+    private func flushBuffer() {
+        guard _bufferDirty else { return }
+        _bufferDirty = false
+        terminalOutput = _ringBuffer.joined(separator: "\n")
     }
 
     // MARK: - Stream JSON parsing
@@ -206,7 +230,6 @@ class ClaudeCodeProcess: Identifiable {
                         onPermissionDenials?(sessionId, denials)
                     }
                 }
-                // Cost tracked silently via onStreamEvent → AppState.recordCost
 
             default:
                 break
@@ -235,9 +258,10 @@ class ClaudeCodeProcess: Identifiable {
     }
 
     private func appendToBuffer(_ lines: [String]) {
-        ringBuffer.append(contentsOf: lines.filter { !$0.isEmpty })
-        if ringBuffer.count > bufferCapacity {
-            ringBuffer.removeFirst(ringBuffer.count - bufferCapacity)
+        _ringBuffer.append(contentsOf: lines.filter { !$0.isEmpty })
+        if _ringBuffer.count > bufferCapacity {
+            _ringBuffer.removeFirst(_ringBuffer.count - bufferCapacity)
         }
+        _bufferDirty = true
     }
 }
