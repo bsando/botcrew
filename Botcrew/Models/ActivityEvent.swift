@@ -14,4 +14,10 @@ struct ActivityEvent: Identifiable {
     let type: EventType
     var file: String?
     var meta: String?
+
+    // Structured tool data (populated from stream-json)
+    var content: String?        // Write: file content. Edit: new_string
+    var oldString: String?      // Edit: old_string
+    var command: String?         // Bash: command
+    var commandOutput: String?   // Bash: output
 }

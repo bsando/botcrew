@@ -16,38 +16,56 @@ struct TokenCard: View {
 
     private var costText: String {
         guard let project = appState.selectedProject, project.estimatedCost > 0 else { return "—" }
-        return String(format: "$%.2f", project.estimatedCost)
+        return String(format: "$%.4f", project.estimatedCost)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("SESSION")
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(0.66)
-                .foregroundStyle(.white.opacity(0.25))
+        Button {
+            appState.showCostDashboard = true
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("SESSION")
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(0.66)
+                        .foregroundStyle(.white.opacity(0.35))
+                    Spacer()
+                    Image(systemName: "chart.bar")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.25))
+                }
 
-            HStack {
-                Text("Tokens")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.55))
-                Spacer()
-                Text(tokenText)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.85))
-            }
+                HStack {
+                    Text("Tokens")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.55))
+                    Spacer()
+                    Text(tokenText)
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.85))
+                }
 
-            HStack {
-                Text("Cost")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.55))
-                Spacer()
-                Text(costText)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.85))
+                HStack {
+                    Text("Cost")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.55))
+                    Spacer()
+                    Text(costText)
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.85))
+                }
             }
+            .padding(12)
+            .background(Color(white: 1, opacity: 0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
-        .padding(12)
-        .background(Color(white: 1, opacity: 0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .buttonStyle(.plain)
+        .sheet(isPresented: Binding(
+            get: { appState.showCostDashboard },
+            set: { appState.showCostDashboard = $0 }
+        )) {
+            CostDashboardView()
+                .environment(appState)
+        }
     }
 }

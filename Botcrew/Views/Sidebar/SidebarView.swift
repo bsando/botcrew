@@ -7,6 +7,7 @@ struct SidebarView: View {
     @Environment(AppState.self) private var appState
     @State private var editingProjectId: UUID?
     @State private var projectEditText: String = ""
+    @State private var historyProjectId: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -67,6 +68,9 @@ struct SidebarView: View {
                             }
                             .contextMenu {
                                 Button("Rename") { startEditingProject(project) }
+                                Button("Session History...") {
+                                    historyProjectId = project.id
+                                }
                                 Divider()
                                 Button("Remove Project") {
                                     appState.removeProject(project.id)
@@ -112,6 +116,15 @@ struct SidebarView: View {
         )) {
             AddProjectSheet()
                 .environment(appState)
+        }
+        .sheet(isPresented: Binding(
+            get: { historyProjectId != nil },
+            set: { if !$0 { historyProjectId = nil } }
+        )) {
+            if let pid = historyProjectId {
+                SessionHistoryView(projectId: pid)
+                    .environment(appState)
+            }
         }
     }
 

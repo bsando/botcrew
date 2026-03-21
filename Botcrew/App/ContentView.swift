@@ -24,7 +24,9 @@ struct ContentView: View {
                 if appState.selectedProject == nil {
                     EmptyProjectView()
                 } else if appState.rootAgents.isEmpty {
-                    EmptyAgentView()
+                    // No agents yet — show prompt input over empty state
+                    Spacer()
+                    PromptInputBar()
                 } else {
                     TabBarView()
                         .frame(height: 38)
@@ -35,12 +37,22 @@ struct ContentView: View {
                     ActivityFeedView()
                         .frame(maxHeight: .infinity)
 
+                    if let approval = appState.pendingApproval {
+                        ToolApprovalBanner(approval: approval)
+                    }
+
                     DragDividerView()
 
                     OfficePanelView()
                         .frame(height: appState.officePanelHeight)
+
+                    PromptInputBar()
                 }
             }
+        }
+        .sheet(isPresented: Bindable(appState).showGitPanel) {
+            GitPanelView()
+                .environment(appState)
         }
     }
 }
@@ -116,6 +128,13 @@ struct BotcrewCommands: Commands {
                 }
             }
             .keyboardShortcut(.downArrow, modifiers: [.command, .shift])
+
+            Divider()
+
+            Button("Git Panel") {
+                appState.showGitPanel.toggle()
+            }
+            .keyboardShortcut("g", modifiers: .command)
         }
     }
 }
@@ -176,23 +195,10 @@ struct EmptyAgentView: View {
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(.white.opacity(0.75))
 
-            if let project = appState.selectedProject {
-                Text("Start a Claude Code session in \(project.name)")
+            if appState.selectedProject != nil {
+                Text("Type a message below to start a Claude Code session")
                     .font(.system(size: 13))
                     .foregroundStyle(.white.opacity(0.50))
-
-                Button("Start Session") {
-                    appState.startSession(projectId: project.id, prompt: "Help me with this project")
-                }
-                .buttonStyle(.plain)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Color(hex: 0x0A84FF))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color(hex: 0x0A84FF).opacity(0.12))
-                )
             }
 
             Spacer()

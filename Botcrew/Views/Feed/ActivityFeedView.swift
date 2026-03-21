@@ -45,10 +45,10 @@ struct ActivityFeedView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(events) { event in
-                        EventRowView(event: event)
+                        ToolCardView(event: event)
 
                         Divider()
-                            .padding(.leading, 46)
+                            .padding(.leading, 40)
                             .opacity(0.06)
                     }
                 }

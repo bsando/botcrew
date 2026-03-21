@@ -16,6 +16,10 @@ class AppState {
     var officePanelHeight: CGFloat = 148 // snap: 26 (collapsed), 148 (ambient), 270 (expanded)
     static let zoomStep: CGFloat = 80 // pixels per step
 
+    init() {
+        loadState()
+    }
+
     func zoomIn() {
         resizeWindow(by: Self.zoomStep)
     }
@@ -55,6 +59,112 @@ class AppState {
         newFrame.origin.y = max(maxFrame.origin.y, min(maxFrame.maxY - newFrame.size.height, newFrame.origin.y))
 
         window.setFrame(newFrame, display: true, animate: true)
+    }
+
+    // MARK: - Permission Mode
+
+    enum PermissionMode: String, CaseIterable, Codable {
+        case auto       // --dangerously-skip-permissions (auto-approve everything)
+        case supervised // --permission-mode default (deny dangerous tools, show approval)
+        case safe       // --allowedTools "Read Glob Grep LSP" (read-only)
+
+        var label: String {
+            switch self {
+            case .auto: "Auto"
+            case .supervised: "Supervised"
+            case .safe: "Safe"
+            }
+        }
+
+        var description: String {
+            switch self {
+            case .auto: "Auto-approve all tools"
+            case .supervised: "Review writes & commands"
+            case .safe: "Read-only, no changes"
+            }
+        }
+    }
+
+    var permissionMode: PermissionMode = .supervised
+
+    /// Pending tool approval for the selected project
+    var pendingApproval: ToolApproval?
+
+    // MARK: - Prompt Templates
+    var promptTemplates: [PromptTemplate] = []
+    var showTemplateSheet = false
+
+    // MARK: - Cost Tracking
+    var costHistory: [CostRecord] = []
+    var showCostDashboard = false
+
+    // MARK: - Session History
+    var showSessionHistory = false
+
+    // MARK: - Git
+    var showGitPanel = false
+
+    func resumeSession(projectId: UUID, sessionId: String) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        let project = projects[idx]
+
+        // Create root agent for the resumed session
+        let rootAgent = Agent(
+            id: UUID(),
+            name: "claude",
+            parentId: nil,
+            status: .reading,
+            bodyColor: Color(hex: 0xc0a8ff),
+            shirtColor: Color(hex: 0x5030a0),
+            spawnTime: Date()
+        )
+        projects[idx].agents.append(rootAgent)
+        projects[idx].status = .active
+        projects[idx].events.append(ActivityEvent(
+            id: UUID(), agentId: rootAgent.id, timestamp: Date(),
+            type: .spawn, meta: "Resumed session"
+        ))
+        selectAgent(rootAgent.id)
+
+        // Launch process with --resume
+        let proc = ClaudeCodeProcess(projectPath: project.path)
+        proc.onPermissionDenials = { [weak self] sid, denials in
+            self?.handlePermissionDenials(projectId: projectId, sessionId: sid, denials: denials)
+        }
+        proc.onStreamEvent = { [weak self] event in
+            self?.handleStreamEvent(event, projectId: projectId)
+        }
+        processes[projectId] = proc
+        proc.send(prompt: "continue where you left off", isContinuation: false, permissionMode: permissionMode.rawValue, resumeSessionId: sessionId)
+        showTerminal = true
+    }
+
+    func recordCost(projectId: UUID, cost: Double, inputTokens: Int, outputTokens: Int, model: String?) {
+        let record = CostRecord(
+            id: UUID(), projectId: projectId, date: Date(),
+            cost: cost, inputTokens: inputTokens, outputTokens: outputTokens, model: model
+        )
+        costHistory.append(record)
+        // Also update project totals
+        if let idx = projects.firstIndex(where: { $0.id == projectId }) {
+            projects[idx].tokenCount += inputTokens + outputTokens
+            projects[idx].estimatedCost += cost
+        }
+        saveState()
+    }
+
+    func saveTemplate(name: String, prompt: String, category: TemplateCategory) {
+        let template = PromptTemplate(
+            id: UUID(), name: name, prompt: prompt,
+            category: category, isBuiltIn: false
+        )
+        promptTemplates.append(template)
+        saveState()
+    }
+
+    func deleteTemplate(_ id: UUID) {
+        promptTemplates.removeAll { $0.id == id }
+        saveState()
     }
 
     // MARK: - Process Management (Phase 6)
@@ -139,6 +249,7 @@ class AppState {
             activeClusterId = nil
             openTerminalIds = []
         }
+        saveState()
     }
 
     func addProject(name: String, path: URL) {
@@ -154,6 +265,7 @@ class AppState {
         )
         projects.append(project)
         selectProject(project.id)
+        saveState()
     }
 
     // MARK: - Renaming
@@ -164,6 +276,7 @@ class AppState {
         for i in projects.indices {
             if let j = projects[i].agents.firstIndex(where: { $0.id == agentId }) {
                 projects[i].agents[j].name = trimmed
+                saveState()
                 return
             }
         }
@@ -174,6 +287,7 @@ class AppState {
         guard !trimmed.isEmpty else { return }
         if let i = projects.firstIndex(where: { $0.id == projectId }) {
             projects[i].name = trimmed
+            saveState()
         }
     }
 
@@ -277,14 +391,96 @@ class AppState {
         selectAgent(rootAgent.id)
 
         // Launch process
-        let proc = ClaudeCodeProcess(projectPath: project.path, prompt: prompt)
+        let proc = ClaudeCodeProcess(projectPath: project.path)
+        proc.onPermissionDenials = { [weak self] sessionId, denials in
+            self?.handlePermissionDenials(projectId: projectId, sessionId: sessionId, denials: denials)
+        }
+        proc.onStreamEvent = { [weak self] event in
+            self?.handleStreamEvent(event, projectId: projectId)
+        }
         processes[projectId] = proc
-        proc.start()
+        proc.send(prompt: prompt, permissionMode: permissionMode.rawValue)
 
         // Set up JSONL watcher after a short delay (file needs to be created)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.setupWatcher(for: projectId, rootAgentId: rootAgent.id)
         }
+    }
+
+    /// Send a follow-up prompt to an existing session, or start a new one
+    func sendPrompt(projectId: UUID, prompt: String) {
+        pendingApproval = nil
+        // If a process exists and has run before (finished), send a continuation
+        if let proc = processes[projectId], !proc.isRunning, proc.hasRanBefore {
+            proc.send(prompt: prompt, isContinuation: true, permissionMode: permissionMode.rawValue)
+            // Update agent status
+            if let idx = projects.firstIndex(where: { $0.id == projectId }),
+               let agentIdx = projects[idx].agents.firstIndex(where: { $0.parentId == nil }) {
+                projects[idx].agents[agentIdx].status = .reading
+                projects[idx].status = .active
+            }
+        } else if processes[projectId] == nil || processes[projectId]?.isRunning == false {
+            // No session yet — start fresh
+            startSession(projectId: projectId, prompt: prompt)
+        }
+        // If already running, ignore (user should wait)
+    }
+
+    /// Handle permission denials from stream-json output
+    private func handlePermissionDenials(projectId: UUID, sessionId: String, denials: [[String: Any]]) {
+        let toolDenials = denials.compactMap { denial -> ToolApproval.ToolDenial? in
+            guard let name = denial["tool_name"] as? String,
+                  let toolUseId = denial["tool_use_id"] as? String,
+                  let input = denial["tool_input"] as? [String: Any] else { return nil }
+            return ToolApproval.ToolDenial(toolName: name, toolUseId: toolUseId, input: input)
+        }
+        guard !toolDenials.isEmpty else { return }
+        pendingApproval = ToolApproval(
+            projectId: projectId,
+            sessionId: sessionId,
+            denials: toolDenials,
+            timestamp: Date()
+        )
+    }
+
+    /// Approve denied tools and re-run with them allowed
+    func approveAndContinue() {
+        guard let approval = pendingApproval else { return }
+        let toolNames = Array(Set(approval.denials.map(\.toolName)))
+        pendingApproval = nil
+
+        if let proc = processes[approval.projectId] {
+            proc.send(
+                prompt: "Please continue with the previously denied tool uses",
+                isContinuation: true,
+                permissionMode: permissionMode.rawValue,
+                allowedTools: toolNames
+            )
+        }
+    }
+
+    /// Deny the pending approval
+    func denyApproval() {
+        pendingApproval = nil
+    }
+
+    /// Handle stream-json events for cost tracking
+    private func handleStreamEvent(_ event: [String: Any], projectId: UUID) {
+        let type = event["type"] as? String ?? ""
+        guard type == "result" else { return }
+
+        let cost = event["total_cost_usd"] as? Double ?? 0
+        guard cost > 0 else { return }
+
+        let usage = event["usage"] as? [String: Any] ?? [:]
+        let inputTokens = usage["input_tokens"] as? Int ?? 0
+        let outputTokens = usage["output_tokens"] as? Int ?? 0
+
+        // Extract model from modelUsage keys
+        let modelUsage = event["modelUsage"] as? [String: Any] ?? [:]
+        let model = modelUsage.keys.first
+
+        recordCost(projectId: projectId, cost: cost, inputTokens: inputTokens, outputTokens: outputTokens, model: model)
     }
 
     /// Stop a running session
@@ -455,6 +651,59 @@ class AppState {
     var selectedProjectHasSession: Bool {
         guard let projectId = selectedProjectId else { return false }
         return processes[projectId]?.isRunning == true
+    }
+
+    // MARK: - Persistence
+
+    private static let saveFileName = "botcrew-state.json"
+
+    private static var saveFileURL: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let botcrewDir = appSupport.appendingPathComponent("Botcrew", isDirectory: true)
+        try? FileManager.default.createDirectory(at: botcrewDir, withIntermediateDirectories: true)
+        return botcrewDir.appendingPathComponent(saveFileName)
+    }
+
+    struct SavedState: Codable {
+        var projects: [SavedProject]
+        var selectedProjectId: UUID?
+        var isSidebarCollapsed: Bool
+        var officePanelHeight: CGFloat
+        var permissionMode: PermissionMode?
+        var promptTemplates: [PromptTemplate]?
+        var costHistory: [CostRecord]?
+    }
+
+    func saveState() {
+        let saved = SavedState(
+            projects: projects.map { SavedProject(from: $0) },
+            selectedProjectId: selectedProjectId,
+            isSidebarCollapsed: isSidebarCollapsed,
+            officePanelHeight: officePanelHeight,
+            permissionMode: permissionMode,
+            promptTemplates: promptTemplates,
+            costHistory: costHistory
+        )
+        do {
+            let data = try JSONEncoder().encode(saved)
+            try data.write(to: Self.saveFileURL, options: .atomic)
+        } catch {
+            print("Botcrew: failed to save state: \(error)")
+        }
+    }
+
+    func loadState() {
+        guard let data = try? Data(contentsOf: Self.saveFileURL),
+              let saved = try? JSONDecoder().decode(SavedState.self, from: data) else {
+            return
+        }
+        projects = saved.projects.map { $0.toProject() }
+        selectedProjectId = saved.selectedProjectId
+        isSidebarCollapsed = saved.isSidebarCollapsed
+        officePanelHeight = saved.officePanelHeight
+        permissionMode = saved.permissionMode ?? .supervised
+        promptTemplates = saved.promptTemplates ?? []
+        costHistory = saved.costHistory ?? []
     }
 
     static func withMockData() -> AppState {
