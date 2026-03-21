@@ -69,9 +69,8 @@ struct PromptInputBar: View {
             }
 
             TextField(placeholder, text: $promptText)
-                .textFieldStyle(.plain)
+                .textFieldStyle(.roundedBorder)
                 .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.85))
                 .focused($isFocused)
                 .onSubmit { submitPrompt() }
                 .disabled(isProcessRunning)

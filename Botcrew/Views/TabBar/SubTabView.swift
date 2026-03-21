@@ -17,12 +17,15 @@ struct SubTabView: View {
 
             if isEditing {
                 TextField("Name", text: $editText, onCommit: onCommitRename)
-                    .textFieldStyle(.plain)
+                    .textFieldStyle(.roundedBorder)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white)
                     .frame(width: 70)
                     .focused($isFocused)
-                    .onAppear { isFocused = true }
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            isFocused = true
+                        }
+                    }
             } else {
                 Text(agent.name)
                     .font(.system(size: 11, weight: .medium))

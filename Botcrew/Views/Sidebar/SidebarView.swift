@@ -164,11 +164,14 @@ struct SidebarProjectRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 if isEditing {
                     TextField("Name", text: $editText, onCommit: onCommitRename)
-                        .textFieldStyle(.plain)
+                        .textFieldStyle(.roundedBorder)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.white)
                         .focused($isFocused)
-                        .onAppear { isFocused = true }
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                isFocused = true
+                            }
+                        }
                 } else {
                     Text(project.name)
                         .font(.system(size: 13, weight: .medium))

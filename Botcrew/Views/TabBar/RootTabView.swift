@@ -25,12 +25,15 @@ struct RootTabView: View {
                 HStack(spacing: 4) {
                     if isEditing {
                         TextField("Name", text: $editText, onCommit: onCommitRename)
-                            .textFieldStyle(.plain)
+                            .textFieldStyle(.roundedBorder)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.white)
                             .frame(width: 80)
                             .focused($isFocused)
-                            .onAppear { isFocused = true }
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    isFocused = true
+                                }
+                            }
                     } else {
                         Text(agent.name)
                             .font(.system(size: 12, weight: .medium))
