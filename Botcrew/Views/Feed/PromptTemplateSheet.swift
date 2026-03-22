@@ -5,6 +5,7 @@ import SwiftUI
 
 struct PromptTemplateSheet: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     @State private var selectedCategory: TemplateCategory?
@@ -42,7 +43,7 @@ struct PromptTemplateSheet: View {
             HStack {
                 Text("Prompt Templates")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Theme.textPrimary(colorScheme))
                 Spacer()
                 Button {
                     showNewTemplate = true
@@ -106,12 +107,12 @@ struct PromptTemplateSheet: View {
         } label: {
             Text(label)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(isActive ? .white : .white.opacity(0.55))
+                .foregroundStyle(isActive ? Theme.textPrimary(colorScheme) : Theme.textSecondary(colorScheme))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(isActive ? Color(hex: 0x0A84FF).opacity(0.3) : Color.white.opacity(0.06))
+                        .fill(isActive ? Color(hex: 0x0A84FF).opacity(0.3) : Theme.cardBg(colorScheme))
                 )
         }
         .buttonStyle(.plain)
@@ -125,18 +126,18 @@ struct PromptTemplateSheet: View {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: template.category.icon)
                     .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Theme.textMuted(colorScheme))
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(template.name)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(Theme.textPrimary(colorScheme))
                         .lineLimit(1)
 
                     Text(template.prompt)
                         .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.45))
+                        .foregroundStyle(Theme.textMuted(colorScheme))
                         .lineLimit(2)
                 }
 
@@ -148,7 +149,7 @@ struct PromptTemplateSheet: View {
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 10))
-                            .foregroundStyle(.white.opacity(0.25))
+                            .foregroundStyle(Theme.textTertiary(colorScheme))
                     }
                     .buttonStyle(.plain)
                 }
@@ -157,7 +158,7 @@ struct PromptTemplateSheet: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.white.opacity(0.04))
+                    .fill(Theme.cardBg(colorScheme))
             )
         }
         .buttonStyle(.plain)
@@ -168,12 +169,12 @@ struct PromptTemplateSheet: View {
             HStack {
                 Text("New Template")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(Theme.textSecondary(colorScheme))
                 Spacer()
                 Button("Cancel") { showNewTemplate = false }
                     .buttonStyle(.plain)
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(Theme.textMuted(colorScheme))
             }
 
             TextField("Template name", text: $newName)
@@ -184,7 +185,7 @@ struct PromptTemplateSheet: View {
                 .font(.system(size: 12))
                 .frame(height: 60)
                 .scrollContentBackground(.hidden)
-                .background(Color.white.opacity(0.06))
+                .background(Theme.cardBg(colorScheme))
                 .cornerRadius(4)
 
             HStack {

@@ -5,6 +5,7 @@ import SwiftUI
 
 struct GitPanelView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
     @State private var gitInfo = GitInfo()
@@ -21,7 +22,7 @@ struct GitPanelView: View {
             HStack {
                 Text("Git")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Theme.textPrimary(colorScheme))
 
                 if !gitInfo.branch.isEmpty {
                     HStack(spacing: 4) {
@@ -46,7 +47,7 @@ struct GitPanelView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.45))
+                        .foregroundStyle(Theme.iconDefault(colorScheme))
                 }
                 .buttonStyle(.plain)
 
@@ -71,7 +72,7 @@ struct GitPanelView: View {
                         .foregroundStyle(Color(hex: 0x28C840).opacity(0.5))
                     Text("Working tree clean")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Theme.textSecondary(colorScheme))
                 }
                 Spacer()
             } else {
@@ -96,7 +97,7 @@ struct GitPanelView: View {
                     HStack {
                         Text("\(selectedFiles.count) of \(gitInfo.changes.count) files")
                             .font(.system(size: 11))
-                            .foregroundStyle(.white.opacity(0.35))
+                            .foregroundStyle(Theme.textMuted(colorScheme))
 
                         Button(selectedFiles.count == gitInfo.changes.count ? "Deselect All" : "Select All") {
                             if selectedFiles.count == gitInfo.changes.count {
@@ -116,7 +117,7 @@ struct GitPanelView: View {
                         }
                         .buttonStyle(.plain)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 5)
                         .background(
@@ -129,7 +130,7 @@ struct GitPanelView: View {
                     if let result = commitResult {
                         Text(result)
                             .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.55))
+                            .foregroundStyle(Theme.textSecondary(colorScheme))
                             .lineLimit(2)
                     }
                 }
@@ -142,13 +143,13 @@ struct GitPanelView: View {
                 ScrollView {
                     Text(diffText)
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.65))
+                        .foregroundStyle(Theme.textSecondary(colorScheme))
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(8)
                 }
                 .frame(height: 150)
-                .background(Color(white: 0.08))
+                .background(Theme.codeBg(colorScheme))
             }
         }
         .frame(width: 440, height: 500)
@@ -168,7 +169,7 @@ struct GitPanelView: View {
             } label: {
                 Image(systemName: isSelected ? "checkmark.square.fill" : "square")
                     .font(.system(size: 13))
-                    .foregroundStyle(isSelected ? Color(hex: 0x0A84FF) : .white.opacity(0.3))
+                    .foregroundStyle(isSelected ? Color(hex: 0x0A84FF) : Theme.textTertiary(colorScheme))
             }
             .buttonStyle(.plain)
 
@@ -179,7 +180,7 @@ struct GitPanelView: View {
 
             Text(change.filePath)
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(Theme.textPrimary(colorScheme))
                 .lineLimit(1)
 
             Spacer()
@@ -189,7 +190,7 @@ struct GitPanelView: View {
             } label: {
                 Text("diff")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.35))
+                    .foregroundStyle(Theme.textMuted(colorScheme))
             }
             .buttonStyle(.plain)
         }
@@ -207,7 +208,7 @@ struct GitPanelView: View {
         case "A": Color(hex: 0x34d399)
         case "D": Color(hex: 0xFF5F57)
         case "??": Color(hex: 0x888780)
-        default: .white.opacity(0.5)
+        default: Color.gray
         }
     }
 

@@ -5,6 +5,7 @@ import SwiftUI
 
 struct FeedHeaderView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 10) {
@@ -16,18 +17,18 @@ struct FeedHeaderView: View {
 
                 Text(agent.name)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Theme.textPrimary(colorScheme))
 
                 // Role label
                 if agent.parentId == nil {
                     Text("root")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.45))
+                        .foregroundStyle(Theme.textSecondary(colorScheme))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(Color.white.opacity(0.06))
+                                .fill(Theme.separator(colorScheme))
                         )
                 }
 
@@ -36,7 +37,7 @@ struct FeedHeaderView: View {
             } else {
                 Text("Select an agent")
                     .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.35))
+                    .foregroundStyle(Theme.textMuted(colorScheme))
             }
 
             Spacer()
@@ -50,12 +51,12 @@ struct FeedHeaderView: View {
                     appState.showTerminal = true
                 }
             }
-            .background(Color.white.opacity(0.04))
+            .background(Theme.cardBg(colorScheme))
             .clipShape(RoundedRectangle(cornerRadius: 5))
         }
         .padding(.horizontal, 16)
         .frame(height: 36)
-        .background(Color(white: 30/255, opacity: 0.6))
+        .background(Theme.contentBg(colorScheme))
     }
 }
 
@@ -119,6 +120,7 @@ struct ThinkingDots: View {
 }
 
 struct ToggleButton: View {
+    @Environment(\.colorScheme) private var colorScheme
     let label: String
     let isActive: Bool
     let action: () -> Void
@@ -127,10 +129,10 @@ struct ToggleButton: View {
         Button(action: action) {
             Text(label)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(isActive ? 0.85 : 0.35))
+                .foregroundStyle(isActive ? Theme.textPrimary(colorScheme) : Theme.textMuted(colorScheme))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background(isActive ? Color.white.opacity(0.08) : Color.clear)
+                .background(isActive ? Theme.separator(colorScheme) : Color.clear)
         }
         .buttonStyle(.plain)
     }

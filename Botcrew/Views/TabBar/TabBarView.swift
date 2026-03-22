@@ -5,6 +5,7 @@ import SwiftUI
 
 struct TabBarView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     @State private var editingAgentId: UUID?
     @State private var editText: String = ""
 
@@ -14,7 +15,7 @@ struct TabBarView: View {
                 if appState.rootAgents.isEmpty {
                     Text("No agents")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Theme.textSecondary(colorScheme))
                         .padding(.horizontal, 16)
                 } else {
                     ForEach(appState.rootAgents) { root in
@@ -76,7 +77,7 @@ struct TabBarView: View {
             .padding(.horizontal, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(white: 40/255, opacity: 0.8))
+        .background(Theme.tabBarBg(colorScheme))
     }
 
     private func startEditing(_ agent: Agent) {

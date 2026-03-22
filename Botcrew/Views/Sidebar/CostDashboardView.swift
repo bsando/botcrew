@@ -6,6 +6,7 @@ import Charts
 
 struct CostDashboardView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
     private var records: [CostRecord] {
@@ -49,7 +50,7 @@ struct CostDashboardView: View {
             HStack {
                 Text("Cost Dashboard")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Theme.textPrimary(colorScheme))
                 Spacer()
                 Button("Done") { dismiss() }
                     .buttonStyle(.plain)
@@ -76,7 +77,7 @@ struct CostDashboardView: View {
                             Text("LAST 7 DAYS")
                                 .font(.system(size: 10, weight: .semibold))
                                 .tracking(0.5)
-                                .foregroundStyle(.white.opacity(0.35))
+                                .foregroundStyle(Theme.textMuted(colorScheme))
 
                             Chart(dailyCosts, id: \.date) { item in
                                 BarMark(
@@ -89,7 +90,7 @@ struct CostDashboardView: View {
                             .chartXAxis {
                                 AxisMarks(values: .stride(by: .day)) { value in
                                     AxisValueLabel(format: .dateTime.weekday(.abbreviated))
-                                        .foregroundStyle(.white.opacity(0.35))
+                                        .foregroundStyle(Theme.textMuted(colorScheme))
                                 }
                             }
                             .chartYAxis {
@@ -97,7 +98,7 @@ struct CostDashboardView: View {
                                     AxisValueLabel {
                                         if let v = value.as(Double.self) {
                                             Text(String(format: "$%.2f", v))
-                                                .foregroundStyle(.white.opacity(0.35))
+                                                .foregroundStyle(Theme.textMuted(colorScheme))
                                         }
                                     }
                                 }
@@ -113,17 +114,17 @@ struct CostDashboardView: View {
                             Text("BY PROJECT")
                                 .font(.system(size: 10, weight: .semibold))
                                 .tracking(0.5)
-                                .foregroundStyle(.white.opacity(0.35))
+                                .foregroundStyle(Theme.textMuted(colorScheme))
 
                             ForEach(projectCosts, id: \.name) { item in
                                 HStack {
                                     Text(item.name)
                                         .font(.system(size: 12, weight: .medium))
-                                        .foregroundStyle(.white.opacity(0.75))
+                                        .foregroundStyle(Theme.textPrimary(colorScheme))
                                     Spacer()
                                     Text(String(format: "$%.4f", item.cost))
                                         .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundStyle(.white.opacity(0.85))
+                                        .foregroundStyle(Theme.textPrimary(colorScheme))
                                 }
                                 .padding(.vertical, 4)
                             }
@@ -134,7 +135,7 @@ struct CostDashboardView: View {
                     if records.isEmpty {
                         Text("No cost data yet. Start a session to begin tracking.")
                             .font(.system(size: 13))
-                            .foregroundStyle(.white.opacity(0.45))
+                            .foregroundStyle(Theme.textSecondary(colorScheme))
                             .padding(.top, 30)
                     }
                 }
@@ -149,16 +150,16 @@ struct CostDashboardView: View {
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
                 .tracking(0.5)
-                .foregroundStyle(.white.opacity(0.35))
+                .foregroundStyle(Theme.textMuted(colorScheme))
             Text(String(format: "$%.4f", value))
                 .font(.system(size: 18, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(Theme.textPrimary(colorScheme))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.white.opacity(0.04))
+                .fill(Theme.cardBg(colorScheme))
         )
     }
 }

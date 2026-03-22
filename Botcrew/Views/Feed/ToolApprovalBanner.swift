@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ToolApprovalBanner: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     let approval: ToolApproval
 
     @State private var isExpanded = true
@@ -19,7 +20,7 @@ struct ToolApprovalBanner: View {
 
                 Text("Permission Required")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Theme.textPrimary(colorScheme))
 
                 Spacer()
 
@@ -30,7 +31,7 @@ struct ToolApprovalBanner: View {
                 } label: {
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Theme.textMuted(colorScheme))
                 }
                 .buttonStyle(.plain)
             }
@@ -51,14 +52,14 @@ struct ToolApprovalBanner: View {
 
                                 Text(denial.summary)
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.75))
+                                    .foregroundStyle(Theme.textPrimary(colorScheme))
                                     .lineLimit(2)
                             }
 
                             if let detail = denial.detail {
                                 Text(detail)
                                     .font(.system(size: 11, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.45))
+                                    .foregroundStyle(Theme.textMuted(colorScheme))
                                     .lineLimit(6)
                                     .padding(.leading, 20)
                             }
@@ -79,12 +80,12 @@ struct ToolApprovalBanner: View {
                     }
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(Theme.textSecondary(colorScheme))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
                     .background(
                         RoundedRectangle(cornerRadius: 5)
-                            .fill(Color.white.opacity(0.08))
+                            .fill(Theme.separator(colorScheme))
                     )
 
                     Button("Allow & Continue") {
@@ -128,7 +129,7 @@ struct ToolApprovalBanner: View {
         case "Write": Color(hex: 0x34d399)
         case "Edit": Color(hex: 0x60a5fa)
         case "Bash": Color(hex: 0xFEBC2E)
-        default: Color.white.opacity(0.55)
+        default: Theme.textSecondary(colorScheme)
         }
     }
 }

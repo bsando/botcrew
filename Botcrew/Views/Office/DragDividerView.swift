@@ -5,6 +5,7 @@ import SwiftUI
 
 struct DragDividerView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
     @State private var dragStartHeight: CGFloat = 0
 
@@ -12,12 +13,12 @@ struct DragDividerView: View {
         ZStack {
             // Background fill for the entire divider area
             Rectangle()
-                .fill(Color.white.opacity(isHovered ? 0.06 : 0.02))
+                .fill(Theme.separator(colorScheme).opacity(isHovered ? 0.75 : 0.25))
 
             // Top edge line
             VStack(spacing: 0) {
                 Rectangle()
-                    .fill(Color.white.opacity(isHovered ? 0.20 : 0.10))
+                    .fill(Theme.separator(colorScheme).opacity(isHovered ? 2.5 : 1.25))
                     .frame(height: 1)
                 Spacer()
             }
@@ -26,7 +27,7 @@ struct DragDividerView: View {
             HStack(spacing: 3) {
                 ForEach(0..<3, id: \.self) { _ in
                     Circle()
-                        .fill(Color.white.opacity(isHovered ? 0.45 : 0.20))
+                        .fill(Theme.iconDefault(colorScheme).opacity(isHovered ? 1.0 : 0.45))
                         .frame(width: 4, height: 4)
                 }
             }
@@ -77,7 +78,7 @@ struct DragDividerView: View {
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Theme.iconDefault(colorScheme))
         }
         .buttonStyle(.plain)
         .help(label)

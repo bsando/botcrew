@@ -5,6 +5,7 @@ import SwiftUI
 
 struct OfficePanelView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     @State private var internalDividerRatio: CGFloat = 0.5
 
     var body: some View {
@@ -12,7 +13,7 @@ struct OfficePanelView: View {
             // Office bar (always visible, even collapsed)
             officeBar
                 .frame(height: 26)
-                .background(Color(red: 15/255, green: 16/255, blue: 32/255))
+                .background(Theme.officeBarBg)
 
             // Canvas (hidden when collapsed)
             if appState.officePanelSnap == .expanded {
@@ -21,11 +22,11 @@ struct OfficePanelView: View {
                     VStack(spacing: 0) {
                         OfficeCanvasView()
                             .frame(height: geo.size.height * internalDividerRatio)
-                            .background(Color(red: 25/255, green: 26/255, blue: 46/255))
+                            .background(Theme.officeFloorBg)
 
                         // Internal divider
                         Rectangle()
-                            .fill(Color.white.opacity(0.08))
+                            .fill(Theme.separator(colorScheme))
                             .frame(height: 1)
 
                         MultiTerminalGrid()
@@ -35,7 +36,7 @@ struct OfficePanelView: View {
             } else if appState.officePanelSnap != .collapsed {
                 OfficeCanvasView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(red: 25/255, green: 26/255, blue: 46/255))
+                    .background(Theme.officeFloorBg)
             }
         }
     }
@@ -45,12 +46,12 @@ struct OfficePanelView: View {
             Text("OFFICE")
                 .font(.system(size: 11, weight: .semibold))
                 .tracking(0.66)
-                .foregroundStyle(.white.opacity(0.25))
+                .foregroundStyle(Theme.textOnDark(colorScheme).opacity(0.3))
 
             if let project = appState.selectedProject {
                 Text("— \(project.name)")
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.15))
+                    .foregroundStyle(Theme.textOnDark(colorScheme).opacity(0.18))
 
                 // Cluster dot groups
                 ForEach(appState.rootAgents) { root in
@@ -79,7 +80,7 @@ struct OfficePanelView: View {
                 } label: {
                     Image(systemName: "chevron.up")
                         .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(Theme.textOnDark(colorScheme).opacity(0.35))
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 4)
@@ -102,6 +103,7 @@ struct OfficePanelView: View {
 
 struct MultiTerminalGrid: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
 
     private var terminalAgents: [Agent] {
         let ids = appState.openTerminalIds
@@ -121,10 +123,10 @@ struct MultiTerminalGrid: View {
                 VStack {
                     Text("No terminal open")
                         .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.25))
+                        .foregroundStyle(Theme.textTertiary(colorScheme))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(red: 15/255, green: 15/255, blue: 20/255))
+                .background(Theme.terminalBg(colorScheme))
             }
         } else if agents.count == 1 {
             // Full width

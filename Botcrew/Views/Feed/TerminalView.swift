@@ -5,6 +5,7 @@ import SwiftUI
 
 struct TerminalView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
 
     private var output: String {
         let realOutput = appState.terminalOutputForSelectedProject
@@ -33,13 +34,13 @@ struct TerminalView: View {
             ScrollView {
                 Text(output)
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(Theme.textPrimary(colorScheme))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
                     .id("terminal-bottom")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(red: 15/255, green: 15/255, blue: 20/255))
+            .background(Theme.terminalBg(colorScheme))
             .onChange(of: output) {
                 proxy.scrollTo("terminal-bottom", anchor: .bottom)
             }

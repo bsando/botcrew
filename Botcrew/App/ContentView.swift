@@ -5,17 +5,18 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HSplitView {
             if !appState.isSidebarCollapsed {
                 SidebarView()
                     .frame(width: 168)
-                    .background(Color(white: 30/255, opacity: 0.7))
+                    .background(Theme.sidebarBg(colorScheme))
             } else {
                 CollapsedSidebarView()
                     .frame(width: 44)
-                    .background(Color(white: 30/255, opacity: 0.7))
+                    .background(Theme.sidebarBg(colorScheme))
             }
 
             VStack(spacing: 0) {
@@ -147,6 +148,7 @@ struct BotcrewCommands: Commands {
 
 struct EmptyProjectView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 16) {
@@ -154,15 +156,15 @@ struct EmptyProjectView: View {
 
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 36))
-                .foregroundStyle(.white.opacity(0.35))
+                .foregroundStyle(Theme.textMuted(colorScheme))
 
             Text("No project selected")
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(Theme.textPrimary(colorScheme))
 
             Text("Add a project from the sidebar to get started")
                 .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.50))
+                .foregroundStyle(Theme.textSecondary(colorScheme))
 
             Button("Add Project") {
                 appState.showAddProjectSheet = true
@@ -180,14 +182,13 @@ struct EmptyProjectView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(white: 30/255, opacity: 0.6))
+        .background(Theme.contentBg(colorScheme))
     }
 }
 
 struct EmptyAgentView: View {
     @Environment(AppState.self) private var appState
-    @State private var quickPrompt = ""
-    @FocusState private var isFocused: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -208,12 +209,12 @@ struct EmptyAgentView: View {
                 VStack(spacing: 6) {
                     Text("No active sessions")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(Theme.textPrimary(colorScheme))
 
                     if let project = appState.selectedProject {
                         Text("Start a Claude Code session in **\(project.name)**")
                             .font(.system(size: 13))
-                            .foregroundStyle(.white.opacity(0.50))
+                            .foregroundStyle(Theme.textSecondary(colorScheme))
                     }
                 }
 
@@ -243,7 +244,7 @@ struct EmptyAgentView: View {
 
                     Text("or type a prompt below")
                         .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.30))
+                        .foregroundStyle(Theme.textTertiary(colorScheme))
                 }
 
                 // Quick action chips
@@ -272,11 +273,12 @@ struct EmptyAgentView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(white: 30/255, opacity: 0.6))
+        .background(Theme.contentBg(colorScheme))
     }
 }
 
 struct QuickActionChip: View {
+    @Environment(\.colorScheme) private var colorScheme
     let icon: String
     let label: String
     let action: () -> Void
@@ -289,16 +291,16 @@ struct QuickActionChip: View {
                 Text(label)
                     .font(.system(size: 11, weight: .medium))
             }
-            .foregroundStyle(.white.opacity(0.55))
+            .foregroundStyle(Theme.textSecondary(colorScheme))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 5)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(Theme.cardBg(colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 5)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    .stroke(Theme.separator(colorScheme), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

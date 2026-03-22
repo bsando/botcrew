@@ -8,6 +8,7 @@ enum TrafficLight {
 }
 
 struct MacFrameView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isWindowHovered = false
     @State private var hoveredButton: TrafficLight?
 
@@ -24,7 +25,7 @@ struct MacFrameView: View {
 
             Text("Botcrew")
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(Theme.textPrimary(colorScheme))
 
             Spacer()
 
@@ -32,7 +33,11 @@ struct MacFrameView: View {
             Color.clear.frame(width: 70)
         }
         .frame(height: 36)
-        .background(Color(white: 40/255, opacity: 0.95))
+        .background(
+            colorScheme == .dark
+                ? Color(white: 40/255, opacity: 0.95)
+                : Color(white: 240/255, opacity: 0.95)
+        )
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isWindowHovered = hovering

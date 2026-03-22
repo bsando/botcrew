@@ -5,6 +5,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     @State private var editingProjectId: UUID?
     @State private var projectEditText: String = ""
     @State private var historyProjectId: UUID?
@@ -16,7 +17,7 @@ struct SidebarView: View {
                 Text("PROJECTS")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.66)
-                    .foregroundStyle(.white.opacity(0.50))
+                    .foregroundStyle(Theme.textSecondary(colorScheme))
 
                 Spacer()
 
@@ -27,7 +28,7 @@ struct SidebarView: View {
                 } label: {
                     Image(systemName: "sidebar.left")
                         .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Theme.iconDefault(colorScheme))
                 }
                 .buttonStyle(.plain)
             }
@@ -40,7 +41,7 @@ struct SidebarView: View {
                 VStack(spacing: 12) {
                     Text("No projects")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Theme.textSecondary(colorScheme))
                     Button("Add Project") {
                         appState.showAddProjectSheet = true
                     }
@@ -96,7 +97,7 @@ struct SidebarView: View {
                     Text("Add Project")
                         .font(.system(size: 12, weight: .medium))
                 }
-                .foregroundStyle(.white.opacity(0.65))
+                .foregroundStyle(Theme.textSecondary(colorScheme))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
@@ -153,6 +154,7 @@ struct SidebarProjectRow: View {
     var isEditing: Bool = false
     @Binding var editText: String
     var onCommitRename: () -> Void = {}
+    @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -175,7 +177,7 @@ struct SidebarProjectRow: View {
                 } else {
                     Text(project.name)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(Theme.textPrimary(colorScheme))
                 }
 
                 if !project.agents.isEmpty {
@@ -231,6 +233,7 @@ struct SidebarProjectRow: View {
 struct AddProjectSheet: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var projectName = ""
     @State private var selectedPath: URL?
 
@@ -238,13 +241,13 @@ struct AddProjectSheet: View {
         VStack(spacing: 20) {
             Text("Add Project")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(Theme.textPrimary(colorScheme))
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Project Name")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.66)
-                    .foregroundStyle(.white.opacity(0.50))
+                    .foregroundStyle(Theme.textSecondary(colorScheme))
 
                 TextField("my-project", text: $projectName)
                     .textFieldStyle(.roundedBorder)
@@ -254,12 +257,12 @@ struct AddProjectSheet: View {
                 Text("Directory")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.66)
-                    .foregroundStyle(.white.opacity(0.25))
+                    .foregroundStyle(Theme.textTertiary(colorScheme))
 
                 HStack {
                     Text(selectedPath?.lastPathComponent ?? "No folder selected")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(selectedPath == nil ? 0.50 : 0.85))
+                        .foregroundStyle(selectedPath == nil ? Theme.textSecondary(colorScheme) : Theme.textPrimary(colorScheme))
 
                     Spacer()
 
@@ -310,6 +313,7 @@ struct AddProjectSheet: View {
 
 struct CollapsedSidebarView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -321,7 +325,7 @@ struct CollapsedSidebarView: View {
             } label: {
                 Image(systemName: "sidebar.left")
                     .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(Theme.iconDefault(colorScheme))
             }
             .buttonStyle(.plain)
             .padding(.top, 52)

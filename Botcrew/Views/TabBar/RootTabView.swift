@@ -11,6 +11,7 @@ struct RootTabView: View {
     let isEditing: Bool
     @Binding var editText: String
     var onCommitRename: () -> Void = {}
+    @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isFocused: Bool
 
     private var hasError: Bool {
@@ -37,7 +38,7 @@ struct RootTabView: View {
                     } else {
                         Text(agent.name)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.85))
+                            .foregroundStyle(Theme.textPrimary(colorScheme))
                             .lineLimit(1)
                     }
 
@@ -56,7 +57,7 @@ struct RootTabView: View {
             if isExpanded {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.3))
+                    .foregroundStyle(Theme.textTertiary(colorScheme))
             }
         }
         .padding(.horizontal, 10)
@@ -72,13 +73,7 @@ struct RootTabView: View {
     }
 
     private var tabBackground: Color {
-        if isSelected {
-            return Color(red: 10/255, green: 132/255, blue: 255/255, opacity: 0.15)
-        }
-        if isExpanded {
-            return Color(white: 50/255, opacity: 0.6)
-        }
-        return Color(white: 50/255, opacity: 0.3)
+        Theme.tabBg(colorScheme, isSelected: isSelected, isExpanded: isExpanded)
     }
 
     private var tabBorder: Color {

@@ -5,6 +5,7 @@ import SwiftUI
 
 struct TokenCard: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
 
     private var tokenText: String {
         guard let project = appState.selectedProject, project.tokenCount > 0 else { return "—" }
@@ -28,35 +29,35 @@ struct TokenCard: View {
                     Text("SESSION")
                         .font(.system(size: 11, weight: .semibold))
                         .tracking(0.66)
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(Theme.textMuted(colorScheme))
                     Spacer()
                     Image(systemName: "chart.bar")
                         .font(.system(size: 10))
-                        .foregroundStyle(.white.opacity(0.25))
+                        .foregroundStyle(Theme.textTertiary(colorScheme))
                 }
 
                 HStack {
                     Text("Tokens")
                         .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Theme.textSecondary(colorScheme))
                     Spacer()
                     Text(tokenText)
                         .font(.system(size: 12, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(Theme.textPrimary(colorScheme))
                 }
 
                 HStack {
                     Text("Cost")
                         .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Theme.textSecondary(colorScheme))
                     Spacer()
                     Text(costText)
                         .font(.system(size: 12, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(Theme.textPrimary(colorScheme))
                 }
             }
             .padding(12)
-            .background(Color(white: 1, opacity: 0.04))
+            .background(Theme.cardBg(colorScheme))
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)

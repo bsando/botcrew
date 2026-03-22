@@ -58,6 +58,7 @@
 		D61A95F0857C6B1C7D21A73C /* PromptTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E456E1A2AFAC7BCEDD2FB4 /* PromptTemplate.swift */; };
 		D7FA0EDA7B87D017E9C49346 /* PolishTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE19CAF6760DDF806B813EC9 /* PolishTests.swift */; };
 		D9F58808E338FB1EC97C9C68 /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92E3C5D8F0DE1A5E8057BC50 /* PerformanceTests.swift */; };
+		F0B61FDE92D5DA2485F24353 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B1F9AC30C68D2243274862 /* Theme.swift */; };
 		F2553F6112AE3CED74C82537 /* SpriteRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B26947A8671269C73A984F7 /* SpriteRenderer.swift */; };
 /* End PBXBuildFile section */
 
@@ -100,6 +101,7 @@
 		49FF34C7A5EAABEA6B92F59F /* SpriteData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpriteData.swift; sourceTree = "<group>"; };
 		4B26947A8671269C73A984F7 /* SpriteRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpriteRenderer.swift; sourceTree = "<group>"; };
 		5067B86A725F08C8EFD2D4A0 /* TokenCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenCard.swift; sourceTree = "<group>"; };
+		52B1F9AC30C68D2243274862 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		607396717F23DA35B657A11D /* TabSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSelectionTests.swift; sourceTree = "<group>"; };
 		69357B3596B52EB36FE672B6 /* ToolApprovalBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolApprovalBanner.swift; sourceTree = "<group>"; };
 		70556633656572720F5221F4 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -280,6 +282,7 @@
 				9DA7EC1EB3E24B9C2F6E69D6 /* AppState.swift */,
 				1BC60BC9CBF577526E503E46 /* BotcrewApp.swift */,
 				B18D4BA8BB2AB36DC08ED73F /* ContentView.swift */,
+				52B1F9AC30C68D2243274862 /* Theme.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -460,6 +463,7 @@
 				AA237687946E11A6C56D9876 /* SubTabView.swift in Sources */,
 				AEE8BEA8EDBBAFC3516DFB12 /* TabBarView.swift in Sources */,
 				4E538425B976BE8D0A484D0C /* TerminalView.swift in Sources */,
+				F0B61FDE92D5DA2485F24353 /* Theme.swift in Sources */,
 				B6B22EB79C727D983F47C315 /* TokenCard.swift in Sources */,
 				017495D7B0FA88D739B59ADF /* ToolApproval.swift in Sources */,
 				14BFA92CEADA5312460EA35B /* ToolApprovalBanner.swift in Sources */,

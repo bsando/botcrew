@@ -4,6 +4,7 @@
 import SwiftUI
 
 struct ToolCardView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let event: ActivityEvent
     @State private var isExpanded = false
 
@@ -36,14 +37,14 @@ struct ToolCardView: View {
                     if let file = event.file {
                         Text(shortenPath(file))
                             .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.55))
+                            .foregroundStyle(Theme.textSecondary(colorScheme))
                             .lineLimit(1)
                     }
 
                     if let meta = event.meta, event.file == nil {
                         Text(meta)
                             .font(.system(size: 11))
-                            .foregroundStyle(.white.opacity(0.45))
+                            .foregroundStyle(Theme.textMuted(colorScheme))
                             .lineLimit(1)
                     }
 
@@ -52,12 +53,12 @@ struct ToolCardView: View {
                     if hasExpandableContent {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.25))
+                            .foregroundStyle(Theme.textTertiary(colorScheme))
                     }
 
                     Text(Self.timeFormatter.string(from: event.timestamp))
                         .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.25))
+                        .foregroundStyle(Theme.textTertiary(colorScheme))
                 }
             }
             .buttonStyle(.plain)
@@ -100,7 +101,7 @@ struct ToolCardView: View {
                 CodeBlock(text: cmd, color: eventColor, label: "command")
             }
             if let output = event.commandOutput {
-                CodeBlock(text: output, color: .white.opacity(0.5), label: "output")
+                CodeBlock(text: output, color: Theme.textSecondary(colorScheme), label: "output")
             }
 
         case .error:
@@ -156,8 +157,9 @@ struct ToolCardView: View {
 // MARK: - Code Block
 
 struct CodeBlock: View {
+    @Environment(\.colorScheme) private var colorScheme
     let text: String
-    var color: Color = .white.opacity(0.6)
+    var color: Color = .gray
     var label: String?
     private let maxLines = 12
 
@@ -178,13 +180,13 @@ struct CodeBlock: View {
 
             Text(displayText)
                 .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(Theme.textSecondary(colorScheme))
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.04))
+                        .fill(Theme.codeBg(colorScheme))
                 )
         }
         .padding(.top, 2)
@@ -194,6 +196,7 @@ struct CodeBlock: View {
 // MARK: - Diff Block
 
 struct DiffBlock: View {
+    @Environment(\.colorScheme) private var colorScheme
     let oldString: String
     let newString: String
 
@@ -225,7 +228,7 @@ struct DiffBlock: View {
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
+                .strokeBorder(Theme.separator(colorScheme), lineWidth: 1)
         )
         .padding(.top, 2)
     }

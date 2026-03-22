@@ -5,6 +5,7 @@ import SwiftUI
 
 struct SessionHistoryView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     let projectId: UUID
 
@@ -23,7 +24,7 @@ struct SessionHistoryView: View {
             HStack {
                 Text("Session History")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Theme.textPrimary(colorScheme))
                 Spacer()
                 Button("Done") { dismiss() }
                     .buttonStyle(.plain)
@@ -42,7 +43,7 @@ struct SessionHistoryView: View {
                 Spacer()
                 Text("No past sessions found")
                     .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(Theme.textSecondary(colorScheme))
                 Spacer()
             } else {
                 ScrollView {
@@ -63,24 +64,24 @@ struct SessionHistoryView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "text.bubble")
                 .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.35))
+                .foregroundStyle(Theme.textMuted(colorScheme))
                 .frame(width: 20)
                 .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(session.summary)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(Theme.textPrimary(colorScheme))
                     .lineLimit(2)
 
                 HStack(spacing: 8) {
                     Text(Self.dateFormatter.string(from: session.lastModified))
                         .font(.system(size: 10))
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(Theme.textMuted(colorScheme))
 
                     Text(formatSize(session.fileSize))
                         .font(.system(size: 10))
-                        .foregroundStyle(.white.opacity(0.25))
+                        .foregroundStyle(Theme.textTertiary(colorScheme))
                 }
             }
 
@@ -104,7 +105,7 @@ struct SessionHistoryView: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(Color.white.opacity(0.03))
+                .fill(Theme.cardBg(colorScheme))
         )
     }
 

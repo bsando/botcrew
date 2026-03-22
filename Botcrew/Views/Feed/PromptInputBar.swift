@@ -5,6 +5,7 @@ import SwiftUI
 
 struct PromptInputBar: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
     @State private var promptText = ""
     @FocusState private var isFocused: Bool
 
@@ -54,7 +55,7 @@ struct PromptInputBar: View {
             } label: {
                 Image(systemName: "list.bullet.rectangle")
                     .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.40))
+                    .foregroundStyle(Theme.textMuted(colorScheme))
             }
             .buttonStyle(.plain)
             .help("Prompt templates")
@@ -85,7 +86,7 @@ struct PromptInputBar: View {
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 18))
-                        .foregroundStyle(promptText.isEmpty ? .white.opacity(0.15) : Color(hex: 0x0A84FF))
+                        .foregroundStyle(promptText.isEmpty ? Theme.textTertiary(colorScheme) : Color(hex: 0x0A84FF))
                 }
                 .buttonStyle(.plain)
                 .disabled(promptText.isEmpty)
@@ -93,10 +94,10 @@ struct PromptInputBar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(white: 35/255, opacity: 0.9))
+        .background(Theme.promptBarBg(colorScheme))
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.white.opacity(0.08))
+                .fill(Theme.separator(colorScheme))
                 .frame(height: 1)
         }
     }

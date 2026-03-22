@@ -9,6 +9,7 @@ struct SubTabView: View {
     let isEditing: Bool
     @Binding var editText: String
     var onCommitRename: () -> Void = {}
+    @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -29,7 +30,7 @@ struct SubTabView: View {
             } else {
                 Text(agent.name)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(Theme.textPrimary(colorScheme))
                     .lineLimit(1)
             }
 
@@ -39,9 +40,7 @@ struct SubTabView: View {
         .padding(.vertical, 5)
         .background(
             RoundedRectangle(cornerRadius: 5)
-                .fill(isSelected
-                      ? Color(red: 10/255, green: 132/255, blue: 255/255, opacity: 0.15)
-                      : Color(white: 50/255, opacity: 0.2))
+                .fill(Theme.subTabBg(colorScheme, isSelected: isSelected))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 5)

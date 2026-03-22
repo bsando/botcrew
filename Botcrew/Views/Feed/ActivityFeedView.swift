@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ActivityFeedView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,7 +21,7 @@ struct ActivityFeedView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(white: 30/255, opacity: 0.6))
+        .background(Theme.contentBg(colorScheme))
     }
 
     @ViewBuilder
@@ -32,11 +33,11 @@ struct ActivityFeedView: View {
                 if appState.selectedAgentId == nil {
                     Text("Select an agent to view activity")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(Theme.textMuted(colorScheme))
                 } else {
                     Text("No activity yet")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(Theme.textMuted(colorScheme))
                 }
                 Spacer()
             }
