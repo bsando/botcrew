@@ -2,7 +2,7 @@
 
 Native macOS app for visualizing and managing Claude Code multi-agent sessions. Pixel art office, activity feeds, bidirectional tab/sprite sync.
 
-**Status**: Post-MVP — all 7 phases + 5 feature sprint complete
+**Status**: Post-MVP polish — all 7 phases + 5 features + light mode + session restore + sound notifications
 **Stack**: SwiftUI, SpriteKit/Canvas, Foundation Process  
 **Reference**: Figma prototype (React/TypeScript) in `CLAUDE_CODE_REFERENCE.md`
 
@@ -146,7 +146,7 @@ Native macOS app for visualizing and managing Claude Code multi-agent sessions. 
 
 - [x] Expanded panel ops mode (sprites top, terminals bottom, internal divider)
 - [x] Multi-terminal grid: 1 terminal full width, 2 side-by-side, 3–4 as 2×2
-- [ ] Session restore: reopen app → reconnect to running processes — deferred to v2
+- [x] Session restore: reopen app → auto-detect recent JSONL sessions and reconstruct state
 - [x] Error recovery UI: click errored sprite → auto-open terminal
 - [x] Empty states: no projects, no agents, new project setup flow
 - [ ] App icon: pixel art botcrew logo (blob robots at desks) — deferred to v2
@@ -175,6 +175,10 @@ Additional post-MVP additions:
 - [x] State persistence (projects, settings, cost history)
 - [x] Keyboard shortcuts (⌘↑↓ projects, ⌘←→ agents, ⌘\ sidebar, ⌘T terminal, ⌘G git)
 - [x] Improved contrast across all UI elements
+- [x] Session restore on relaunch (auto-detect recent JSONL sessions)
+- [x] Sound notifications (session complete, error, subagent spawn)
+- [x] Light mode (centralized Theme system, ~300 color replacements across 20 files)
+- [x] Performance optimization (throttled terminal buffer flush, non-observed storage)
 
 ---
 
@@ -185,7 +189,8 @@ Botcrew/
 ├── App/
 │   ├── BotcrewApp.swift            # Entry point, window, commands
 │   ├── AppState.swift              # Central state + persistence + process mgmt
-│   └── ContentView.swift           # Main layout + BotcrewCommands
+│   ├── ContentView.swift           # Main layout + BotcrewCommands
+│   └── Theme.swift                 # Adaptive color tokens (light/dark mode)
 ├── Models/
 │   ├── Project.swift               # Project + SavedProject (Codable)
 │   ├── Agent.swift                 # Agent model + status enum
@@ -226,7 +231,8 @@ Botcrew/
 │   ├── JSONLWatcher.swift          # DispatchSource transcript watching
 │   ├── AgentStateParser.swift      # Event parsing → agent state
 │   ├── SessionScanner.swift        # Past JSONL session scanning
-│   └── GitService.swift            # Git CLI operations via Process
+│   ├── GitService.swift            # Git CLI operations via Process
+│   └── SoundService.swift          # System sound notifications
 └── Assets/
     └── SpriteData.swift            # Pixel arrays (blob sprites)
 ```

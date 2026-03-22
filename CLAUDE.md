@@ -362,13 +362,15 @@ Post-MVP features (shipped):
 - [x] State persistence across launches (Codable JSON)
 - [x] Keyboard shortcuts (⌘↑↓←→, ⌘\, ⌘T, ⌘G)
 - [x] Stream-JSON protocol support (`--output-format stream-json --verbose`)
+- [x] Session restore on relaunch (auto-detect recent JSONL sessions)
+- [x] Sound notifications (Glass/Basso/Pop via NSSound, toggleable)
+- [x] Light + dark mode (centralized Theme.swift, office panel stays dark)
+- [x] Performance optimization (throttled terminal buffer, non-observed storage)
 
 Deferred to v2:
 - Split view (two projects side by side)
-- Sound notifications
 - Office layout editor
-- Custom sprite skins
-- Light mode
+- Custom sprite skins (user designing options in Figma)
 
 ---
 

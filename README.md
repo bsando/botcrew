@@ -28,6 +28,9 @@ It reads Claude Code's JSONL transcript files (no modification to Claude Code ne
 - **Cost dashboard** — Daily cost chart, per-project breakdown, token tracking
 - **Git integration** — Status, diff viewer, and commit support (⌘G)
 - **Prompt templates** — Built-in and custom templates for common workflows
+- **Session restore** — Auto-detects recent sessions on relaunch, reconstructs agent hierarchy
+- **Sound notifications** — System sounds on session complete, error, and subagent spawn
+- **Light + dark mode** — Follows system theme with adaptive colors (office panel stays dark)
 - **State persistence** — Projects, settings, and cost history saved across launches
 - **Keyboard shortcuts** — Full keyboard navigation (⌘↑↓ projects, ⌘←→ agents, ⌘\ sidebar, ⌘T terminal)
 
@@ -104,7 +107,8 @@ Botcrew/
 ├── App/
 │   ├── BotcrewApp.swift          # Entry point, window, commands
 │   ├── AppState.swift            # Central state + persistence
-│   └── ContentView.swift         # Main layout + keyboard shortcuts
+│   ├── ContentView.swift         # Main layout + keyboard shortcuts
+│   └── Theme.swift               # Adaptive color tokens (light/dark)
 ├── Models/
 │   ├── Project.swift             # Project + SavedProject (Codable)
 │   ├── Agent.swift               # Agent model + status enum
@@ -125,7 +129,8 @@ Botcrew/
 │   ├── JSONLWatcher.swift        # DispatchSource transcript watching
 │   ├── AgentStateParser.swift    # Event parsing → agent state
 │   ├── SessionScanner.swift      # Past session scanning
-│   └── GitService.swift          # Git CLI operations
+│   ├── GitService.swift          # Git CLI operations
+│   └── SoundService.swift        # System sound notifications
 └── Assets/
     └── SpriteData.swift          # Pixel arrays (blob sprites)
 ```

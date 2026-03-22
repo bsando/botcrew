@@ -6,9 +6,9 @@
 
 ## Current state
 
-**Phase**: Post-MVP feature sprint complete
-**Status**: All 7 build phases done + 5 post-MVP features added. App is a fully functional Claude Code management tool with prompt input, permission controls, structured feed, session history, cost dashboard, git integration, and prompt templates.
-**Next action**: Manual testing, daily driver usage, bug fixes as needed.
+**Phase**: Post-MVP polish complete
+**Status**: All 7 build phases done + 5 post-MVP features + polish pass (session restore, sound notifications, light mode, bug fixes, performance optimization). App follows system light/dark theme.
+**Next action**: Sprite design options (user designing in Figma), daily driver usage.
 
 ---
 
@@ -228,6 +228,47 @@ Feature 5 — Prompt Templates:
 
 Blockers: None
 Status: Post-MVP feature sprint complete
+```
+
+### Session 4 — 2026-03-21
+
+```
+Post-MVP polish & light mode:
+
+Bug fixes:
+  - Fixed inline rename TextFields not accepting keyboard input (DoubleClickModifier
+    overlay intercepting all events). Removed DoubleClickModifier entirely — rename
+    via context menu only.
+  - Fixed sidebar rename canceling immediately (root VStack onTapGesture firing
+    on TextField clicks). Replaced with background tap catcher.
+  - Fixed prompt input bar not accepting typing (.textFieldStyle(.plain) unreliable
+    on macOS). Switched to .roundedBorder.
+  - Fixed severe UI lag during active Claude sessions (ringBuffer on @Observable
+    triggering re-renders on every stdout chunk). Moved to non-observed private
+    storage with 200ms throttled flush.
+  - Removed cost line spam from terminal output.
+
+Session restore:
+  - Auto-detects recent JSONL sessions (<10 min old) on app launch
+  - Replays events to reconstruct agent hierarchy and status
+  - Scans subagent directories for sub-agent restoration
+  - Sets up live watchers for ongoing session updates
+
+Sound notifications:
+  - SoundService with three system sounds: Glass (session complete),
+    Basso (error), Pop (subagent spawned)
+  - Toggle in Panels menu (⌘ menu bar)
+  - Persisted in SavedState
+
+Light mode:
+  - Created centralized Theme.swift with adaptive color tokens
+  - Static methods accepting ColorScheme parameter for all UI colors
+  - Replaced ~300 hardcoded dark-mode colors across 20 view files
+  - Office panel stays always-dark (intentional design choice)
+  - Removed .preferredColorScheme(.dark) — app follows system theme
+
+Blockers: None
+Status: Light mode + polish complete
 ```
 
 ---

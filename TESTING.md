@@ -41,7 +41,8 @@ Run through these after any significant change. Open the app in Xcode (Cmd+R).
 
 ### Window & Chrome
 - [ ] App launches at 900x640 minimum
-- [ ] Window has dark appearance with translucent material background
+- [ ] Window follows system light/dark theme
+- [ ] Window has translucent material background
 - [ ] Traffic lights (close/minimize/maximize) show at 40% opacity
 - [ ] Hovering window → traffic lights go to 100% opacity
 - [ ] Hovering individual button → shows icon (x, -, arrows)
@@ -176,9 +177,8 @@ Run through these after any significant change. Open the app in Xcode (Cmd+R).
 - [ ] "New Template" form with name, prompt, category
 
 ### Inline Renaming
-- [ ] Double-click project name in sidebar → editable text field
-- [ ] Double-click agent name in tab bar → editable text field
-- [ ] Right-click → "Rename" context menu option
+- [ ] Right-click project → "Rename" context menu option
+- [ ] Right-click agent tab → "Rename" context menu option
 - [ ] Press Enter or click away to commit rename
 - [ ] Press Escape to cancel
 
@@ -200,11 +200,32 @@ Run through these after any significant change. Open the app in Xcode (Cmd+R).
 - [ ] ⌘Shift↑ → expand office panel
 - [ ] ⌘Shift↓ → collapse office panel
 
+### Sound Notifications
+- [ ] Session complete → Glass sound plays
+- [ ] Error event → Basso sound plays
+- [ ] Subagent spawn → Pop sound plays
+- [ ] Toggle sound off in Panels menu → sounds stop
+- [ ] Sound preference persists across launches
+
+### Light Mode
+- [ ] Switch system to light mode → app adapts all colors
+- [ ] Switch back to dark mode → app returns to dark colors
+- [ ] Office panel stays dark in both modes
+- [ ] All text remains readable in both modes
+- [ ] Selection highlights visible in both modes
+
+### Session Restore
+- [ ] Start a Claude session, quit and relaunch app within 10 min
+- [ ] Verify agent hierarchy is reconstructed
+- [ ] Verify agent statuses are correct
+- [ ] Verify live updates resume for active sessions
+
 ### Performance
 - [ ] Office canvas smooth at 60fps with mock data (6 agents)
 - [ ] No visible stuttering when switching between projects
 - [ ] Feed scrolls smoothly with many events
 - [ ] Tab bar responds instantly to clicks
+- [ ] No UI lag during active Claude Code sessions
 
 ---
 

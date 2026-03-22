@@ -96,9 +96,9 @@ Extracted from design session. Read this before making any architectural or UX c
 **Rationale**: Figma v2 prototype established this direction. Botcrew should feel native and polished, not like an Electron app.  
 **Implementation**: SwiftUI `.ultraThinMaterial` / `.regularMaterial` wherever possible rather than hardcoded hex colors.
 
-### Dark mode primary
-**Decision**: Dark mode is the primary target. Light mode is a v2 concern.  
-**Rationale**: The pixel office canvas looks significantly better dark. The agent colors were designed against dark backgrounds.
+### Light + dark mode via Theme system
+**Decision**: Centralized Theme.swift with adaptive color tokens. App follows system colorScheme. Office panel stays always-dark.
+**Rationale**: Originally dark-only, but light mode was straightforward with a centralized token system. ~300 hardcoded colors replaced across 20 files. Office panel stays dark because pixel sprites and floor colors were designed for dark backgrounds.
 
 ### Interactive traffic lights
 **Decision**: Replicate macOS Big Sur hover behavior — dots at 40% opacity default, full opacity on window hover, icons appear on individual button hover.  
@@ -144,11 +144,27 @@ Extracted from design session. Read this before making any architectural or UX c
 
 ---
 
+### Session restore
+**Decision**: Auto-detect recent JSONL sessions (<10 min old) on app launch and reconstruct agent hierarchy.
+**Rationale**: Without restore, relaunching Botcrew loses all agent state. Replaying JSONL events gives accurate status without needing to persist ephemeral agent state.
+
+### Sound notifications
+**Decision**: System sounds via NSSound — Glass (session complete), Basso (error), Pop (subagent spawn). Toggle in Panels menu.
+**Rationale**: Passive audio cues complement visual signals. Using system sounds avoids bundling audio assets and feels native.
+
+### Terminal buffer throttling
+**Decision**: Non-observed `_ringBuffer` with 200ms Timer flush to observed `terminalOutput`.
+**Rationale**: `@Observable` ringBuffer triggered SwiftUI re-renders on every stdout chunk (hundreds/sec during active sessions), causing severe UI lag. Throttled flush reduces render frequency to 5/sec maximum.
+
+### Rename via context menu only
+**Decision**: Removed double-click-to-rename. Rename accessible only via right-click context menu.
+**Rationale**: SwiftUI's `onTapGesture(count: 2)` causes a 300ms delay on ALL single taps for disambiguation. This made the entire tab bar feel sluggish. Context menu is reliable and doesn't penalize normal clicks.
+
+---
+
 ## Deferred decisions
 
 - **Split view**: Deferred to v2. Two projects side by side.
-- **Sound notifications**: Deferred to v2. Chime on agent completion.
-- **Custom sprite skins**: Deferred to v2. Per-agent character selection.
+- **Custom sprite skins**: In progress. User designing options in Figma. Will add SpriteDesign enum + picker.
 - **Office layout editor**: Deferred to v2. Custom furniture, floor tiles.
-- **Light mode**: Deferred to v2.
 - **Agent color assignment**: Fixed palette (role-based) — decided, using colors from CLAUDE.md. Dynamic cycling for subagents within a session.
