@@ -49,6 +49,8 @@
 		A2A2CF62BBC6685E0A2CA846 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24067ABCB9910F1086C84A3C /* ModelTests.swift */; };
 		AA237687946E11A6C56D9876 /* SubTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B87C987C228489B2964BDED /* SubTabView.swift */; };
 		AA8133EA215D641224FAC984 /* CostRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C5E1DE3225468EAEC952985 /* CostRecord.swift */; };
+		AB1234567890ABCD12345678 /* RateLimitInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1234567890ABCD12345678 /* RateLimitInfo.swift */; };
+		AB2234567890ABCD12345678 /* RateLimitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2234567890ABCD12345678 /* RateLimitCard.swift */; };
 		AEE8BEA8EDBBAFC3516DFB12 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E5AED995F729162595B2E2 /* TabBarView.swift */; };
 		AFADAA61CBB038D85074E7AF /* SessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C9CB549A52F43D29B1081CE /* SessionInfo.swift */; };
 		B2729574A40C7E5F0DFA8312 /* SpriteDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74055E7555046456CC5FE936 /* SpriteDataTests.swift */; };
@@ -84,6 +86,8 @@
 		15E1DA6ADC564B9106965E58 /* ActivityFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityFeedView.swift; sourceTree = "<group>"; };
 		1BC60BC9CBF577526E503E46 /* BotcrewApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotcrewApp.swift; sourceTree = "<group>"; };
 		1C5E1DE3225468EAEC952985 /* CostRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CostRecord.swift; sourceTree = "<group>"; };
+		CD1234567890ABCD12345678 /* RateLimitInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimitInfo.swift; sourceTree = "<group>"; };
+		CD2234567890ABCD12345678 /* RateLimitCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimitCard.swift; sourceTree = "<group>"; };
 		21AFF5022698EA9046A9C61B /* Botcrew.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Botcrew.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		236C016C46818B05CBC63468 /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
 		24067ABCB9910F1086C84A3C /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
@@ -144,6 +148,7 @@
 			children = (
 				856E4DDC0BFF7B78E1136CBF /* CostDashboardView.swift */,
 				B8BC139CEE32F94C16625491 /* SessionHistoryView.swift */,
+				CD2234567890ABCD12345678 /* RateLimitCard.swift */,
 				70556633656572720F5221F4 /* SidebarView.swift */,
 				5067B86A725F08C8EFD2D4A0 /* TokenCard.swift */,
 			);
@@ -172,6 +177,7 @@
 				29A74E97B88E0C157D070C96 /* GitStatus.swift */,
 				F2A04F4CF1E7727F18D93AE3 /* Project.swift */,
 				48E456E1A2AFAC7BCEDD2FB4 /* PromptTemplate.swift */,
+				CD1234567890ABCD12345678 /* RateLimitInfo.swift */,
 				9C9CB549A52F43D29B1081CE /* SessionInfo.swift */,
 				150DF5D6952D045869EF9171 /* ToolApproval.swift */,
 			);
@@ -464,6 +470,8 @@
 				AEE8BEA8EDBBAFC3516DFB12 /* TabBarView.swift in Sources */,
 				4E538425B976BE8D0A484D0C /* TerminalView.swift in Sources */,
 				F0B61FDE92D5DA2485F24353 /* Theme.swift in Sources */,
+				AB1234567890ABCD12345678 /* RateLimitInfo.swift in Sources */,
+				AB2234567890ABCD12345678 /* RateLimitCard.swift in Sources */,
 				B6B22EB79C727D983F47C315 /* TokenCard.swift in Sources */,
 				017495D7B0FA88D739B59ADF /* ToolApproval.swift in Sources */,
 				14BFA92CEADA5312460EA35B /* ToolApprovalBanner.swift in Sources */,

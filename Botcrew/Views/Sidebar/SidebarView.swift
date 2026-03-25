@@ -104,8 +104,11 @@ struct SidebarView: View {
             }
             .buttonStyle(.plain)
 
-            TokenCard()
-                .padding(12)
+            VStack(spacing: 8) {
+                RateLimitCard()
+                TokenCard()
+            }
+            .padding(12)
         }
         .background {
             // Invisible background to catch clicks outside rows and cancel rename
