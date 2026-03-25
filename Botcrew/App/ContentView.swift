@@ -212,37 +212,15 @@ struct EmptyAgentView: View {
                         .foregroundStyle(Theme.textPrimary(colorScheme))
 
                     if let project = appState.selectedProject {
-                        Text("Start a Claude Code session in **\(project.name)**")
+                        Text("No Claude Code sessions running in **\(project.name)**")
                             .font(.system(size: 13))
                             .foregroundStyle(Theme.textSecondary(colorScheme))
                     }
                 }
 
-                // Quick start buttons
-                VStack(spacing: 10) {
-                    Button {
-                        appState.focusPromptInput = true
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "character.cursor.ibeam")
-                                .font(.system(size: 11))
-                            Text("New Session")
-                                .font(.system(size: 13, weight: .medium))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 9)
-                        .background(
-                            RoundedRectangle(cornerRadius: 7)
-                                .fill(Color(hex: 0x0A84FF))
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    Text("Type a prompt to get started")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Theme.textTertiary(colorScheme))
-                }
+                Text("Type a prompt to get started")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textTertiary(colorScheme))
 
                 // Quick action chips
                 HStack(spacing: 8) {
