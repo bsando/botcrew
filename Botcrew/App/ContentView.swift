@@ -42,12 +42,12 @@ struct ContentView: View {
                         ToolApprovalBanner(approval: approval)
                     }
 
+                    PromptInputBar()
+
                     DragDividerView()
 
                     OfficePanelView()
                         .frame(height: appState.officePanelHeight)
-
-                    PromptInputBar()
                 }
             }
         }
@@ -221,15 +221,12 @@ struct EmptyAgentView: View {
                 // Quick start buttons
                 VStack(spacing: 10) {
                     Button {
-                        if let projectId = appState.selectedProjectId {
-                            appState.sendPrompt(projectId: projectId, prompt: "Review this codebase and summarize the architecture")
-                            appState.showTerminal = true
-                        }
+                        appState.focusPromptInput = true
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "play.fill")
+                            Image(systemName: "character.cursor.ibeam")
                                 .font(.system(size: 11))
-                            Text("Start Session")
+                            Text("New Session")
                                 .font(.system(size: 13, weight: .medium))
                         }
                         .foregroundStyle(.white)
@@ -242,7 +239,7 @@ struct EmptyAgentView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Text("or type a prompt below")
+                    Text("Type a prompt to get started")
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.textTertiary(colorScheme))
                 }

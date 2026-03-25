@@ -13,6 +13,7 @@ class AppState {
     var isSidebarCollapsed = false
     var showAddProjectSheet = false
     var showTerminal = false
+    var focusPromptInput = false
     var officePanelHeight: CGFloat = 148 // snap: 26 (collapsed), 148 (ambient), 270 (expanded)
     static let zoomStep: CGFloat = 80 // pixels per step
 
@@ -110,6 +111,9 @@ class AppState {
 
     // MARK: - Sound Notifications
     var soundEnabled = true
+
+    // MARK: - Rate Limit (account-level, transient)
+    var rateLimitInfo: RateLimitInfo?
 
     func resumeSession(projectId: UUID, sessionId: String) {
         guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
@@ -483,6 +487,12 @@ class AppState {
             }
         }
 
+        // Parse account-level rate limit info
+        if type == "rate_limit_event",
+           let info = event["rate_limit_info"] as? [String: Any] {
+            parseRateLimitInfo(info)
+        }
+
         guard type == "result" else { return }
 
         // Session completed — play sound
@@ -500,6 +510,25 @@ class AppState {
         let model = modelUsage.keys.first
 
         recordCost(projectId: projectId, cost: cost, inputTokens: inputTokens, outputTokens: outputTokens, model: model)
+    }
+
+    private func parseRateLimitInfo(_ info: [String: Any]) {
+        let status = info["status"] as? String ?? "allowed"
+        let resetsAtUnix = info["resetsAt"] as? TimeInterval ?? 0
+        let rateLimitType = info["rateLimitType"] as? String ?? "five_hour"
+        let overageStatus = info["overageStatus"] as? String ?? "allowed"
+        let overageResetsAtUnix = info["overageResetsAt"] as? TimeInterval ?? 0
+        let isUsingOverage = info["isUsingOverage"] as? Bool ?? false
+
+        rateLimitInfo = RateLimitInfo(
+            status: status,
+            resetsAt: Date(timeIntervalSince1970: resetsAtUnix),
+            rateLimitType: rateLimitType,
+            overageStatus: overageStatus,
+            overageResetsAt: Date(timeIntervalSince1970: overageResetsAtUnix),
+            isUsingOverage: isUsingOverage,
+            receivedAt: Date()
+        )
     }
 
     /// Stop a running session

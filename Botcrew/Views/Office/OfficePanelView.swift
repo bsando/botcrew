@@ -17,20 +17,27 @@ struct OfficePanelView: View {
 
             // Canvas (hidden when collapsed)
             if appState.officePanelSnap == .expanded {
-                // Ops mode: sprites top, terminals bottom
-                GeometryReader { geo in
-                    VStack(spacing: 0) {
-                        OfficeCanvasView()
-                            .frame(height: geo.size.height * internalDividerRatio)
-                            .background(Theme.officeFloorBg)
+                // Ops mode: sprites top, terminals bottom (only if terminal not already shown in main area)
+                if appState.showTerminal {
+                    // Terminal already visible in main feed area — just show sprites
+                    OfficeCanvasView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Theme.officeFloorBg)
+                } else {
+                    GeometryReader { geo in
+                        VStack(spacing: 0) {
+                            OfficeCanvasView()
+                                .frame(height: geo.size.height * internalDividerRatio)
+                                .background(Theme.officeFloorBg)
 
-                        // Internal divider
-                        Rectangle()
-                            .fill(Theme.separator(colorScheme))
-                            .frame(height: 1)
+                            // Internal divider
+                            Rectangle()
+                                .fill(Theme.separator(colorScheme))
+                                .frame(height: 1)
 
-                        MultiTerminalGrid()
-                            .frame(maxHeight: .infinity)
+                            MultiTerminalGrid()
+                                .frame(maxHeight: .infinity)
+                        }
                     }
                 }
             } else if appState.officePanelSnap != .collapsed {

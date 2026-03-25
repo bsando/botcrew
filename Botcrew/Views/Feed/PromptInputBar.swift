@@ -100,6 +100,12 @@ struct PromptInputBar: View {
                 .fill(Theme.separator(colorScheme))
                 .frame(height: 1)
         }
+        .onChange(of: appState.focusPromptInput) { _, newValue in
+            if newValue {
+                isFocused = true
+                appState.focusPromptInput = false
+            }
+        }
     }
 
     private var permissionIcon: String {
