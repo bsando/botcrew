@@ -257,6 +257,19 @@ class ClaudeCodeProcess: Identifiable {
         }
     }
 
+    /// Inject text into the terminal buffer (for slash command output, etc.)
+    func appendOutput(_ lines: [String]) {
+        appendToBuffer(lines)
+        flushBuffer()
+    }
+
+    /// Clear the terminal buffer
+    func clearBuffer() {
+        _ringBuffer.removeAll()
+        _bufferDirty = true
+        flushBuffer()
+    }
+
     private func appendToBuffer(_ lines: [String]) {
         _ringBuffer.append(contentsOf: lines.filter { !$0.isEmpty })
         if _ringBuffer.count > bufferCapacity {

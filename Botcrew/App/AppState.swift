@@ -437,6 +437,159 @@ class AppState {
         // If already running, ignore (user should wait)
     }
 
+    // MARK: - Slash Commands
+
+    func executeSlashCommand(_ command: SlashCommand, projectId: UUID) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        let project = projects[idx]
+
+        // Pass-through commands: forward to active Claude session
+        if !command.isLocal {
+            passCommandToClaude(command, projectId: projectId)
+            return
+        }
+
+        switch command {
+        case .help:
+            var lines = ["", "  Available commands:", ""]
+            let localCmds = SlashCommand.allCases.filter(\.isLocal)
+            let passCmds = SlashCommand.allCases.filter { !$0.isLocal }
+            lines.append("  Local (handled by Botcrew):")
+            lines += localCmds.map { "    \($0.name.padding(toLength: 16, withPad: " ", startingAt: 0)) \($0.description)" }
+            lines.append("")
+            lines.append("  Session (forwarded to Claude):")
+            lines += passCmds.map { "    \($0.name.padding(toLength: 16, withPad: " ", startingAt: 0)) \($0.description)" }
+            lines.append("")
+            appendCommandOutput(lines, projectId: projectId)
+
+        case .agents:
+            if project.agents.isEmpty {
+                appendCommandOutput(["", "  No agents in this project.", ""], projectId: projectId)
+            } else {
+                var lines = ["", "  Agents (\(project.agents.count)):"]
+                for agent in project.agents {
+                    let role = agent.parentId == nil ? "root" : "sub "
+                    let status = agent.status.rawValue
+                    lines.append("    [\(role)] \(agent.name) — \(status)")
+                }
+                lines.append("")
+                appendCommandOutput(lines, projectId: projectId)
+            }
+
+        case .cost:
+            showCostDashboard = true
+            let sessionCost = String(format: "$%.4f", project.estimatedCost)
+            let tokens = formatTokens(project.tokenCount)
+            appendCommandOutput(["", "  Session: \(tokens) tokens (\(sessionCost))", "  Opening cost dashboard...", ""], projectId: projectId)
+
+        case .clear:
+            clearTerminal(projectId: projectId)
+
+        case .status:
+            let status = project.status.rawValue
+            let agentCount = project.agents.count
+            let running = processes[projectId]?.isRunning == true
+            let sessionId = processes[projectId]?.lastSessionId ?? "none"
+            var lines = [
+                "",
+                "  Project: \(project.name)",
+                "  Status:  \(status)",
+                "  Agents:  \(agentCount)",
+                "  Process: \(running ? "running" : "stopped")",
+                "  Session: \(sessionId)",
+                "  Path:    \(project.path.path)",
+                ""
+            ]
+            if let rateLimit = rateLimitInfo, !rateLimit.isExpired {
+                lines.insert("  Rate:    \(rateLimit.tier)", at: lines.count - 1)
+            }
+            appendCommandOutput(lines, projectId: projectId)
+
+        case .resume:
+            showSessionHistory = true
+            appendCommandOutput(["", "  Opening session history...", ""], projectId: projectId)
+
+        case .model:
+            let model = lastModelUsed(projectId: projectId) ?? "unknown"
+            appendCommandOutput(["", "  Model: \(model)", ""], projectId: projectId)
+
+        case .git:
+            showGitPanel = true
+            appendCommandOutput(["", "  Opening git panel... (⌘G)", ""], projectId: projectId)
+
+        case .templates:
+            showTemplateSheet = true
+            appendCommandOutput(["", "  Opening prompt templates...", ""], projectId: projectId)
+
+        case .terminal:
+            showTerminal.toggle()
+            let state = showTerminal ? "shown" : "hidden"
+            appendCommandOutput(["", "  Terminal \(state). (⌘T)", ""], projectId: projectId)
+
+        case .version:
+            // Run claude --version and show output
+            runClaudeVersion(projectId: projectId)
+
+        default:
+            break
+        }
+    }
+
+    /// Forward a slash command to the active Claude session as a continuation
+    private func passCommandToClaude(_ command: SlashCommand, projectId: UUID) {
+        if let proc = processes[projectId], !proc.isRunning, proc.hasRanBefore {
+            proc.send(prompt: command.name, isContinuation: true, permissionMode: permissionMode.rawValue)
+            showTerminal = true
+        } else if processes[projectId]?.isRunning == true {
+            appendCommandOutput(["", "  Cannot run \(command.name) while Claude is working.", ""], projectId: projectId)
+        } else {
+            appendCommandOutput(["", "  No active session. Start a session first, then use \(command.name).", ""], projectId: projectId)
+        }
+    }
+
+    private func runClaudeVersion(projectId: UUID) {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        proc.arguments = ["-l", "-c", "\(ClaudeCodeProcess.claudePath) --version"]
+        let pipe = Pipe()
+        proc.standardOutput = pipe
+        proc.standardError = pipe
+        proc.terminationHandler = { [weak self] _ in
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "unknown"
+            DispatchQueue.main.async {
+                self?.appendCommandOutput(["", "  Claude Code: \(output)", ""], projectId: projectId)
+            }
+        }
+        do { try proc.run() } catch {
+            appendCommandOutput(["", "  Error: \(error.localizedDescription)", ""], projectId: projectId)
+        }
+    }
+
+    private func appendCommandOutput(_ lines: [String], projectId: UUID) {
+        if let proc = processes[projectId] {
+            proc.appendOutput(lines)
+        }
+        showTerminal = true
+    }
+
+    private func clearTerminal(projectId: UUID) {
+        // Replace the process's terminal output by creating a fresh buffer
+        if let proc = processes[projectId] {
+            proc.clearBuffer()
+        }
+    }
+
+    private func lastModelUsed(projectId: UUID) -> String? {
+        costHistory.last(where: { $0.projectId == projectId })?.model
+    }
+
+    private func formatTokens(_ count: Int) -> String {
+        if count >= 1_000_000 { return String(format: "%.1fM", Double(count) / 1_000_000) }
+        if count >= 1_000 { return String(format: "%.1fk", Double(count) / 1_000) }
+        return "\(count)"
+    }
+
     /// Handle permission denials from stream-json output
     private func handlePermissionDenials(projectId: UUID, sessionId: String, denials: [[String: Any]]) {
         let toolDenials = denials.compactMap { denial -> ToolApproval.ToolDenial? in
