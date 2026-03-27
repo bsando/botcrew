@@ -567,9 +567,17 @@ class AppState {
     }
 
     private func appendCommandOutput(_ lines: [String], projectId: UUID) {
-        if let proc = processes[projectId] {
-            proc.appendOutput(lines)
+        let proc: ClaudeCodeProcess
+        if let existing = processes[projectId] {
+            proc = existing
+        } else if let project = projects.first(where: { $0.id == projectId }) {
+            let newProc = ClaudeCodeProcess(projectPath: project.path)
+            processes[projectId] = newProc
+            proc = newProc
+        } else {
+            return
         }
+        proc.appendOutput(lines)
         showTerminal = true
     }
 
