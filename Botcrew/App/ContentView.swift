@@ -25,8 +25,15 @@ struct ContentView: View {
                 if appState.selectedProject == nil {
                     EmptyProjectView()
                 } else if appState.rootAgents.isEmpty {
-                    // No agents yet — show empty state with start session CTA
-                    EmptyAgentView()
+                    // No agents yet — show empty state or terminal output
+                    if appState.showTerminal, let projectId = appState.selectedProjectId,
+                       let proc = appState.processes[projectId], !proc.terminalOutput.isEmpty {
+                        // Slash command produced output — show terminal
+                        ActivityFeedView()
+                            .frame(maxHeight: .infinity)
+                    } else {
+                        EmptyAgentView()
+                    }
                     PromptInputBar()
                 } else {
                     TabBarView()

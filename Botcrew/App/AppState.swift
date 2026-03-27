@@ -543,7 +543,9 @@ class AppState {
         } else if processes[projectId]?.isRunning == true {
             appendCommandOutput(["", "  Cannot run \(command.name) while Claude is working.", ""], projectId: projectId)
         } else {
-            appendCommandOutput(["", "  No active session. Start a session first, then use \(command.name).", ""], projectId: projectId)
+            // No session — start a new one with the slash command
+            sendPrompt(projectId: projectId, prompt: command.name)
+            showTerminal = true
         }
     }
 
