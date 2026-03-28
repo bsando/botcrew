@@ -146,7 +146,8 @@ class AppState {
             self?.handleStreamEvent(event, projectId: projectId)
         }
         processes[projectId] = proc
-        proc.send(prompt: "continue where you left off", isContinuation: false, permissionMode: permissionMode.rawValue, resumeSessionId: sessionId)
+        proc.launch(permissionMode: permissionMode.rawValue, resumeSessionId: sessionId)
+        proc.sendMessage(text: "continue where you left off")
         showTerminal = true
     }
 
@@ -410,7 +411,8 @@ class AppState {
             self?.handleStreamEvent(event, projectId: projectId)
         }
         processes[projectId] = proc
-        proc.send(prompt: prompt, permissionMode: permissionMode.rawValue)
+        proc.launch(permissionMode: permissionMode.rawValue)
+        proc.sendMessage(text: prompt)
 
         // Set up JSONL watcher after a short delay (file needs to be created)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
@@ -421,9 +423,9 @@ class AppState {
     /// Send a follow-up prompt to an existing session, or start a new one
     func sendPrompt(projectId: UUID, prompt: String) {
         pendingApproval = nil
-        // If a process exists and has run before (finished), send a continuation
-        if let proc = processes[projectId], !proc.isRunning, proc.hasRanBefore {
-            proc.send(prompt: prompt, isContinuation: true, permissionMode: permissionMode.rawValue)
+        // If a process is running and waiting for input, send a follow-up message
+        if let proc = processes[projectId], proc.isRunning, proc.isWaitingForInput {
+            proc.sendMessage(text: prompt)
             // Update agent status
             if let idx = projects.firstIndex(where: { $0.id == projectId }),
                let agentIdx = projects[idx].agents.firstIndex(where: { $0.parentId == nil }) {
@@ -434,7 +436,59 @@ class AppState {
             // No session yet — start fresh
             startSession(projectId: projectId, prompt: prompt)
         }
-        // If already running, ignore (user should wait)
+        // If already running and not waiting, ignore (user should wait)
+    }
+
+    /// Send a prompt with image attachments
+    func sendPromptWithImages(projectId: UUID, prompt: String, images: [ImageAttachment]) {
+        pendingApproval = nil
+        if let proc = processes[projectId], proc.isRunning, proc.isWaitingForInput {
+            proc.sendMessage(text: prompt, images: images)
+            if let idx = projects.firstIndex(where: { $0.id == projectId }),
+               let agentIdx = projects[idx].agents.firstIndex(where: { $0.parentId == nil }) {
+                projects[idx].agents[agentIdx].status = .reading
+                projects[idx].status = .active
+            }
+        } else if processes[projectId] == nil || processes[projectId]?.isRunning == false {
+            startSessionWithImages(projectId: projectId, prompt: prompt, images: images)
+        }
+    }
+
+    private func startSessionWithImages(projectId: UUID, prompt: String, images: [ImageAttachment]) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        let project = projects[idx]
+
+        let rootAgent = Agent(
+            id: UUID(),
+            name: "claude",
+            parentId: nil,
+            status: .reading,
+            bodyColor: Color(hex: 0xc0a8ff),
+            shirtColor: Color(hex: 0x5030a0),
+            spawnTime: Date()
+        )
+        projects[idx].agents.append(rootAgent)
+        projects[idx].status = .active
+        projects[idx].events.append(ActivityEvent(
+            id: UUID(), agentId: rootAgent.id, timestamp: Date(),
+            type: .spawn, meta: "Session started"
+        ))
+        selectAgent(rootAgent.id)
+
+        let proc = ClaudeCodeProcess(projectPath: project.path)
+        proc.onPermissionDenials = { [weak self] sessionId, denials in
+            self?.handlePermissionDenials(projectId: projectId, sessionId: sessionId, denials: denials)
+        }
+        proc.onStreamEvent = { [weak self] event in
+            self?.handleStreamEvent(event, projectId: projectId)
+        }
+        processes[projectId] = proc
+        proc.launch(permissionMode: permissionMode.rawValue)
+        proc.sendMessage(text: prompt, images: images)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.setupWatcher(for: projectId, rootAgentId: rootAgent.id)
+        }
     }
 
     // MARK: - Slash Commands
@@ -535,12 +589,12 @@ class AppState {
         }
     }
 
-    /// Forward a slash command to the active Claude session as a continuation
+    /// Forward a slash command to the active Claude session
     private func passCommandToClaude(_ command: SlashCommand, projectId: UUID) {
-        if let proc = processes[projectId], !proc.isRunning, proc.hasRanBefore {
-            proc.send(prompt: command.name, isContinuation: true, permissionMode: permissionMode.rawValue)
+        if let proc = processes[projectId], proc.isRunning, proc.isWaitingForInput {
+            proc.sendMessage(text: command.name)
             showTerminal = true
-        } else if processes[projectId]?.isRunning == true {
+        } else if let proc = processes[projectId], proc.isRunning, !proc.isWaitingForInput {
             appendCommandOutput(["", "  Cannot run \(command.name) while Claude is working.", ""], projectId: projectId)
         } else {
             // No session — start a new one with the slash command
@@ -620,16 +674,25 @@ class AppState {
     /// Approve denied tools and re-run with them allowed
     func approveAndContinue() {
         guard let approval = pendingApproval else { return }
-        let toolNames = Array(Set(approval.denials.map(\.toolName)))
         pendingApproval = nil
 
-        if let proc = processes[approval.projectId] {
-            proc.send(
-                prompt: "Please continue with the previously denied tool uses",
-                isContinuation: true,
-                permissionMode: permissionMode.rawValue,
-                allowedTools: toolNames
-            )
+        if let proc = processes[approval.projectId], proc.isRunning {
+            proc.sendMessage(text: "Please continue with the previously denied tool uses")
+        } else {
+            // Process ended — relaunch with allowed tools
+            let toolNames = Array(Set(approval.denials.map(\.toolName)))
+            let projectId = approval.projectId
+            guard let project = projects.first(where: { $0.id == projectId }) else { return }
+            let proc = ClaudeCodeProcess(projectPath: project.path)
+            proc.onPermissionDenials = { [weak self] sessionId, denials in
+                self?.handlePermissionDenials(projectId: projectId, sessionId: sessionId, denials: denials)
+            }
+            proc.onStreamEvent = { [weak self] event in
+                self?.handleStreamEvent(event, projectId: projectId)
+            }
+            processes[projectId] = proc
+            proc.launch(permissionMode: permissionMode.rawValue, allowedTools: toolNames)
+            proc.sendMessage(text: "Please continue with the previously denied tool uses")
         }
     }
 

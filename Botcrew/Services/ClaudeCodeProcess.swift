@@ -2,8 +2,11 @@
 // Botcrew
 
 import Foundation
+import AppKit
 
 /// Wraps a Foundation.Process that runs the `claude` CLI.
+/// Uses persistent stdin streaming (`--input-format stream-json`) to support
+/// multi-turn conversations and image attachments.
 /// Captures stdout into a ring buffer for the terminal view.
 /// Parses stream-json events for structured output and permission denials.
 @Observable
@@ -12,6 +15,7 @@ class ClaudeCodeProcess: Identifiable {
     let projectPath: URL
 
     private(set) var isRunning = false
+    private(set) var isWaitingForInput = false
     private(set) var exitCode: Int32?
     private(set) var hasRanBefore = false
     private(set) var lastSessionId: String?
@@ -27,6 +31,7 @@ class ClaudeCodeProcess: Identifiable {
     var onStreamEvent: ((_ event: [String: Any]) -> Void)?
 
     private var process: Process?
+    private var stdinPipe: Pipe?
     private var stdoutPipe: Pipe?
     private var stderrPipe: Pipe?
     private let bufferCapacity = 2000
@@ -56,23 +61,20 @@ class ClaudeCodeProcess: Identifiable {
         self.projectPath = projectPath
     }
 
-    /// Launch claude with a prompt
-    func send(
-        prompt: String,
-        isContinuation: Bool = false,
+    // MARK: - Launch & Send
+
+    /// Launch the claude process with stdin streaming. Does NOT send a message yet.
+    func launch(
         permissionMode: String = "default",
         allowedTools: [String]? = nil,
         resumeSessionId: String? = nil
     ) {
         guard !isRunning else { return }
 
-        let escapedPrompt = prompt.replacingOccurrences(of: "\"", with: "\\\"")
-        var args = "--print --output-format stream-json --verbose"
+        var args = "--print --input-format stream-json --output-format stream-json --verbose"
 
         if let sessionId = resumeSessionId {
             args += " --resume \(sessionId)"
-        } else if isContinuation {
-            args += " --continue"
         }
 
         // Permission flags
@@ -90,18 +92,21 @@ class ClaudeCodeProcess: Identifiable {
             args += " --allowedTools \"\(tools.joined(separator: " "))\""
         }
 
-        let command = "\(Self.claudePath) \(args) \"\(escapedPrompt)\""
+        let command = "\(Self.claudePath) \(args)"
 
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/bin/zsh")
         proc.arguments = ["-l", "-c", command]
         proc.currentDirectoryURL = projectPath
 
+        let stdin = Pipe()
         let stdout = Pipe()
         let stderr = Pipe()
+        proc.standardInput = stdin
         proc.standardOutput = stdout
         proc.standardError = stderr
 
+        self.stdinPipe = stdin
         self.stdoutPipe = stdout
         self.stderrPipe = stderr
         self.process = proc
@@ -136,6 +141,7 @@ class ClaudeCodeProcess: Identifiable {
         proc.terminationHandler = { [weak self] proc in
             DispatchQueue.main.async {
                 self?.isRunning = false
+                self?.isWaitingForInput = false
                 self?.hasRanBefore = true
                 self?.exitCode = proc.terminationStatus
                 self?.stdoutPipe?.fileHandleForReading.readabilityHandler = nil
@@ -149,18 +155,111 @@ class ClaudeCodeProcess: Identifiable {
         do {
             try proc.run()
             isRunning = true
-            let modeLabel = isContinuation ? " --continue" : ""
-            appendToBuffer(["", "$ claude\(modeLabel) \"\(prompt)\"", ""])
+            isWaitingForInput = true
         } catch {
             appendToBuffer(["Error launching claude: \(error.localizedDescription)"])
             isRunning = false
         }
     }
 
+    /// Send a text-only message to the running process via stdin
+    func sendMessage(text: String) {
+        guard isRunning else { return }
+        isWaitingForInput = false
+
+        appendToBuffer(["", "$ claude \"\(text)\"", ""])
+
+        let payload: [String: Any] = [
+            "type": "user",
+            "message": [
+                "role": "user",
+                "content": text
+            ]
+        ]
+        writeStdinJSON(payload)
+    }
+
+    /// Send a message with text and image attachments
+    func sendMessage(text: String, images: [ImageAttachment]) {
+        guard isRunning else { return }
+        if images.isEmpty {
+            sendMessage(text: text)
+            return
+        }
+        isWaitingForInput = false
+
+        let imageLabel = images.count == 1 ? "1 image" : "\(images.count) images"
+        appendToBuffer(["", "$ claude \"\(text)\" [\(imageLabel)]", ""])
+
+        var contentBlocks: [[String: Any]] = []
+
+        // Images first
+        for img in images {
+            contentBlocks.append([
+                "type": "image",
+                "source": [
+                    "type": "base64",
+                    "media_type": img.mediaType,
+                    "data": img.base64Data
+                ] as [String: Any]
+            ])
+        }
+
+        // Text block
+        if !text.isEmpty {
+            contentBlocks.append([
+                "type": "text",
+                "text": text
+            ])
+        }
+
+        let payload: [String: Any] = [
+            "type": "user",
+            "message": [
+                "role": "user",
+                "content": contentBlocks
+            ] as [String: Any]
+        ]
+        writeStdinJSON(payload)
+    }
+
     /// Stop the running process
     func stop() {
         guard isRunning, let proc = process, proc.isRunning else { return }
-        proc.terminate()
+        // Close stdin to signal EOF
+        stdinPipe?.fileHandleForWriting.closeFile()
+        // Force-terminate after 5 seconds if still running
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            guard let self = self, self.isRunning, let proc = self.process, proc.isRunning else { return }
+            proc.terminate()
+        }
+    }
+
+    // MARK: - Stdin writing
+
+    private func writeStdinJSON(_ json: [String: Any]) {
+        guard let pipe = stdinPipe else { return }
+        do {
+            let data = try JSONSerialization.data(withJSONObject: json)
+            guard var line = String(data: data, encoding: .utf8) else { return }
+            line += "\n"
+            guard let lineData = line.data(using: .utf8) else { return }
+
+            // Write on background queue to avoid blocking main thread with large payloads
+            let handle = pipe.fileHandleForWriting
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                do {
+                    try handle.write(contentsOf: lineData)
+                } catch {
+                    DispatchQueue.main.async {
+                        self?.appendToBuffer(["Error writing to stdin: \(error.localizedDescription)"])
+                        self?.isRunning = false
+                    }
+                }
+            }
+        } catch {
+            appendToBuffer(["Error serializing JSON: \(error.localizedDescription)"])
+        }
     }
 
     // MARK: - Throttled buffer flush
@@ -224,6 +323,7 @@ class ClaudeCodeProcess: Identifiable {
                 }
 
             case "result":
+                isWaitingForInput = true
                 if let denials = json["permission_denials"] as? [[String: Any]], !denials.isEmpty {
                     lastPermissionDenials = denials
                     if let sessionId = json["session_id"] as? String {

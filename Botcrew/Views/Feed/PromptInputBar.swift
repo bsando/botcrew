@@ -2,17 +2,23 @@
 // Botcrew
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct PromptInputBar: View {
     @Environment(AppState.self) private var appState
     @Environment(\.colorScheme) private var colorScheme
     @State private var promptText = ""
     @State private var selectedCommandIndex = 0
+    @State private var attachedImages: [ImageAttachment] = []
+    @State private var isDragTargeted = false
     @FocusState private var isFocused: Bool
 
-    private var isProcessRunning: Bool {
-        guard let projectId = appState.selectedProjectId else { return false }
-        return appState.processes[projectId]?.isRunning == true
+    private let maxAttachments = 5
+
+    private var isProcessBusy: Bool {
+        guard let projectId = appState.selectedProjectId,
+              let proc = appState.processes[projectId] else { return false }
+        return proc.isRunning && !proc.isWaitingForInput
     }
 
     private var matchingCommands: [SlashCommand] {
@@ -23,6 +29,10 @@ struct PromptInputBar: View {
 
     private var showAutocomplete: Bool {
         promptText.hasPrefix("/") && !matchingCommands.isEmpty && isFocused
+    }
+
+    private var canSubmit: Bool {
+        !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachedImages.isEmpty
     }
 
     var body: some View {
@@ -42,6 +52,41 @@ struct PromptInputBar: View {
             Rectangle()
                 .fill(Theme.separator(colorScheme))
                 .frame(height: 1)
+
+            // Image thumbnail strip
+            if !attachedImages.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(attachedImages) { img in
+                            ZStack(alignment: .topTrailing) {
+                                Image(nsImage: img.thumbnail)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 48, height: 48)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(Theme.separator(colorScheme), lineWidth: 1)
+                                    )
+
+                                Button {
+                                    attachedImages.removeAll { $0.id == img.id }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.white)
+                                        .shadow(color: .black.opacity(0.5), radius: 1)
+                                }
+                                .buttonStyle(.plain)
+                                .offset(x: 4, y: -4)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                }
+                .background(Theme.promptBarBg(colorScheme))
+            }
 
             HStack(spacing: 8) {
                 // Permission mode picker
@@ -97,14 +142,25 @@ struct PromptInputBar: View {
                     .environment(appState)
                 }
 
+                // Attach image button
+                Button {
+                    showFilePicker()
+                } label: {
+                    Image(systemName: "photo")
+                        .font(.system(size: 12))
+                        .foregroundStyle(attachedImages.isEmpty ? Theme.textMuted(colorScheme) : Color(hex: 0x0A84FF))
+                }
+                .buttonStyle(.plain)
+                .help("Attach image")
+                .disabled(isProcessBusy)
+
                 TextField(placeholder, text: $promptText)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13))
                     .focused($isFocused)
                     .onSubmit { submitPrompt() }
-                    .disabled(isProcessRunning)
+                    .disabled(isProcessBusy)
                     .onChange(of: promptText) { _, newValue in
-                        // Reset selection when text changes
                         selectedCommandIndex = 0
                     }
                     .onKeyPress(.upArrow) {
@@ -131,7 +187,7 @@ struct PromptInputBar: View {
                         return .ignored
                     }
 
-                if isProcessRunning {
+                if isProcessBusy {
                     ProgressView()
                         .scaleEffect(0.5)
                         .frame(width: 16, height: 16)
@@ -141,15 +197,28 @@ struct PromptInputBar: View {
                     } label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 18))
-                            .foregroundStyle(promptText.isEmpty ? Theme.textTertiary(colorScheme) : Color(hex: 0x0A84FF))
+                            .foregroundStyle(!canSubmit ? Theme.textTertiary(colorScheme) : Color(hex: 0x0A84FF))
                     }
                     .buttonStyle(.plain)
-                    .disabled(promptText.isEmpty)
+                    .disabled(!canSubmit)
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(Theme.promptBarBg(colorScheme))
+        }
+        .overlay(
+            // Drag-and-drop highlight border
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color(hex: 0x0A84FF), lineWidth: 2)
+                .opacity(isDragTargeted ? 1 : 0)
+        )
+        .onDrop(of: [.image, .fileURL], isTargeted: $isDragTargeted) { providers in
+            handleDrop(providers)
+            return true
+        }
+        .onPasteCommand(of: [.image, .png, .jpeg, .tiff]) { providers in
+            handlePaste(providers)
         }
         .onChange(of: appState.focusPromptInput) { _, newValue in
             if newValue {
@@ -158,6 +227,8 @@ struct PromptInputBar: View {
             }
         }
     }
+
+    // MARK: - Helpers
 
     private var permissionIcon: String {
         switch appState.permissionMode {
@@ -176,11 +247,11 @@ struct PromptInputBar: View {
     }
 
     private var placeholder: String {
-        if isProcessRunning {
+        if isProcessBusy {
             return "Claude is working..."
         }
         if let projectId = appState.selectedProjectId,
-           let proc = appState.processes[projectId], proc.hasRanBefore {
+           let proc = appState.processes[projectId], proc.isRunning, proc.isWaitingForInput {
             return "Send a follow-up message..."
         }
         return "Ask Claude something... (type / for commands)"
@@ -194,10 +265,10 @@ struct PromptInputBar: View {
 
     private func submitPrompt() {
         let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, let projectId = appState.selectedProjectId else { return }
+        guard canSubmit, let projectId = appState.selectedProjectId else { return }
 
         // Check if it's a slash command
-        if text.hasPrefix("/") {
+        if text.hasPrefix("/") && attachedImages.isEmpty {
             let cmdName = String(text.dropFirst()).components(separatedBy: " ").first ?? ""
             if let command = SlashCommand(rawValue: cmdName) {
                 promptText = ""
@@ -206,9 +277,90 @@ struct PromptInputBar: View {
             }
         }
 
+        let images = attachedImages
         promptText = ""
-        appState.sendPrompt(projectId: projectId, prompt: text)
+        attachedImages = []
+
+        if images.isEmpty {
+            appState.sendPrompt(projectId: projectId, prompt: text)
+        } else {
+            appState.sendPromptWithImages(projectId: projectId, prompt: text, images: images)
+        }
         appState.showTerminal = true
+    }
+
+    // MARK: - Image attachment
+
+    private func showFilePicker() {
+        guard attachedImages.count < maxAttachments else { return }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png, .jpeg, .gif, .webP]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.begin { response in
+            guard response == .OK else { return }
+            let remaining = maxAttachments - attachedImages.count
+            for url in panel.urls.prefix(remaining) {
+                if let attachment = ImageProcessor.processFile(at: url) {
+                    attachedImages.append(attachment)
+                }
+            }
+        }
+    }
+
+    private func handleDrop(_ providers: [NSItemProvider]) {
+        let remaining = maxAttachments - attachedImages.count
+        guard remaining > 0 else { return }
+
+        for provider in providers.prefix(remaining) {
+            // Try loading as file URL first
+            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
+                    guard let urlData = data as? Data,
+                          let url = URL(dataRepresentation: urlData, relativeTo: nil) else { return }
+                    if let attachment = ImageProcessor.processFile(at: url) {
+                        DispatchQueue.main.async {
+                            attachedImages.append(attachment)
+                        }
+                    }
+                }
+            } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                provider.loadItem(forTypeIdentifier: UTType.image.identifier) { data, _ in
+                    var image: NSImage?
+                    if let nsImage = data as? NSImage {
+                        image = nsImage
+                    } else if let imageData = data as? Data {
+                        image = NSImage(data: imageData)
+                    }
+                    if let image = image, let attachment = ImageProcessor.processImage(image) {
+                        DispatchQueue.main.async {
+                            attachedImages.append(attachment)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func handlePaste(_ providers: [NSItemProvider]) {
+        let remaining = maxAttachments - attachedImages.count
+        guard remaining > 0 else { return }
+
+        for provider in providers.prefix(remaining) {
+            provider.loadItem(forTypeIdentifier: UTType.image.identifier) { data, _ in
+                var image: NSImage?
+                if let nsImage = data as? NSImage {
+                    image = nsImage
+                } else if let imageData = data as? Data {
+                    image = NSImage(data: imageData)
+                }
+                if let image = image, let attachment = ImageProcessor.processImage(image, fileName: "pasted-image.png") {
+                    DispatchQueue.main.async {
+                        attachedImages.append(attachment)
+                    }
+                }
+            }
+        }
     }
 }
 
