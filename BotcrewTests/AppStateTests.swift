@@ -45,7 +45,7 @@ final class AppStateTests: XCTestCase {
     // MARK: - Selection
 
     func testSelectedProjectReturnsCorrectProject() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let project = makeProject()
         state.projects = [project]
         state.selectedProjectId = project.id
@@ -53,21 +53,21 @@ final class AppStateTests: XCTestCase {
     }
 
     func testSelectedProjectReturnsNilWhenNoMatch() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.projects = [makeProject()]
         state.selectedProjectId = UUID()
         XCTAssertNil(state.selectedProject)
     }
 
     func testSelectedProjectReturnsNilWhenNothingSelected() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.projects = [makeProject()]
         state.selectedProjectId = nil
         XCTAssertNil(state.selectedProject)
     }
 
     func testSelectedAgentReturnsCorrectAgent() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let agent = makeAgent(name: "writer-1")
         let project = makeProject(agents: [agent])
         state.projects = [project]
@@ -78,7 +78,7 @@ final class AppStateTests: XCTestCase {
     }
 
     func testSelectedAgentReturnsNilWhenNoProjectSelected() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let agent = makeAgent()
         let project = makeProject(agents: [agent])
         state.projects = [project]
@@ -88,7 +88,7 @@ final class AppStateTests: XCTestCase {
     }
 
     func testSelectedAgentReturnsNilWhenAgentNotInProject() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let project = makeProject(agents: [makeAgent()])
         state.projects = [project]
         state.selectedProjectId = project.id
@@ -99,7 +99,7 @@ final class AppStateTests: XCTestCase {
     // MARK: - Defaults
 
     func testInitialStateIsEmpty() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertTrue(state.projects.isEmpty)
         XCTAssertNil(state.selectedProjectId)
         XCTAssertNil(state.selectedAgentId)
@@ -112,7 +112,7 @@ final class AppStateTests: XCTestCase {
     // MARK: - selectProject
 
     func testSelectProjectSetsIdAndClearsAgent() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let agent = makeAgent()
         let p1 = makeProject(agents: [agent])
         let p2 = makeProject(name: "Other")
@@ -133,7 +133,7 @@ final class AppStateTests: XCTestCase {
     // MARK: - removeProject
 
     func testRemoveProjectRemovesFromList() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let p1 = makeProject(name: "A")
         let p2 = makeProject(name: "B")
         state.projects = [p1, p2]
@@ -146,7 +146,7 @@ final class AppStateTests: XCTestCase {
     }
 
     func testRemoveSelectedProjectSelectsFirst() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let p1 = makeProject(name: "A")
         let p2 = makeProject(name: "B")
         state.projects = [p1, p2]
@@ -158,7 +158,7 @@ final class AppStateTests: XCTestCase {
     }
 
     func testRemoveNonSelectedProjectKeepsSelection() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let p1 = makeProject(name: "A")
         let p2 = makeProject(name: "B")
         state.projects = [p1, p2]
@@ -171,7 +171,7 @@ final class AppStateTests: XCTestCase {
     }
 
     func testRemoveLastProjectClearsSelection() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let p1 = makeProject()
         state.projects = [p1]
         state.selectedProjectId = p1.id
@@ -185,7 +185,7 @@ final class AppStateTests: XCTestCase {
     // MARK: - addProject
 
     func testAddProjectAppendsAndSelects() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertTrue(state.projects.isEmpty)
 
         state.addProject(name: "NewProject", path: URL(fileURLWithPath: "/tmp/new"))
@@ -196,7 +196,7 @@ final class AppStateTests: XCTestCase {
     }
 
     func testAddProjectSetsIdleStatus() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.addProject(name: "Test", path: URL(fileURLWithPath: "/tmp"))
         XCTAssertEqual(state.projects.first?.status, .idle)
         XCTAssertTrue(state.projects.first?.agents.isEmpty ?? false)

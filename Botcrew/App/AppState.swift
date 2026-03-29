@@ -17,11 +17,13 @@ class AppState {
     var officePanelHeight: CGFloat = 148 // snap: 26 (collapsed), 148 (ambient), 270 (expanded)
     static let zoomStep: CGFloat = 80 // pixels per step
 
-    init() {
-        loadState()
-        // Restore sessions after a short delay to let UI settle
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.restoreSessions()
+    init(skipPersistence: Bool = false) {
+        if !skipPersistence {
+            loadState()
+            // Restore sessions after a short delay to let UI settle
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.restoreSessions()
+            }
         }
     }
 

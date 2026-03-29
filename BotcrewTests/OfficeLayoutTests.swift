@@ -9,31 +9,31 @@ final class OfficeLayoutTests: XCTestCase {
     // MARK: - Office panel snap states
 
     func testOfficePanelDefaultHeight() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertEqual(state.officePanelHeight, 148)
         XCTAssertEqual(state.officePanelSnap, .ambient)
     }
 
     func testOfficePanelSnapCollapsed() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.officePanelHeight = 26
         XCTAssertEqual(state.officePanelSnap, .collapsed)
     }
 
     func testOfficePanelSnapAmbient() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.officePanelHeight = 148
         XCTAssertEqual(state.officePanelSnap, .ambient)
     }
 
     func testOfficePanelSnapExpanded() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.officePanelHeight = 270
         XCTAssertEqual(state.officePanelSnap, .expanded)
     }
 
     func testOfficePanelSnapBoundary() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         // At 60 → collapsed (boundary is <= 60)
         state.officePanelHeight = 60
         XCTAssertEqual(state.officePanelSnap, .collapsed)
@@ -49,7 +49,7 @@ final class OfficeLayoutTests: XCTestCase {
     }
 
     func testSnapOfficePanelSetsHeight() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.snapOfficePanel(to: .collapsed)
         XCTAssertEqual(state.officePanelHeight, 26)
         state.snapOfficePanel(to: .ambient)

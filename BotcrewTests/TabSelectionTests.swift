@@ -22,7 +22,7 @@ final class TabSelectionTests: XCTestCase {
     }
 
     private func stateWithAgents() -> (AppState, UUID, UUID, UUID) {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let rootId = UUID()
         let sub1Id = UUID()
         let sub2Id = UUID()
@@ -45,7 +45,7 @@ final class TabSelectionTests: XCTestCase {
     }
 
     func testRootAgentsEmptyWhenNoProject() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertTrue(state.rootAgents.isEmpty)
     }
 
@@ -114,7 +114,7 @@ final class TabSelectionTests: XCTestCase {
     }
 
     func testToggleClusterSwitchesBetweenClusters() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let root1 = UUID()
         let root2 = UUID()
         let project = makeProject(agents: [

@@ -169,7 +169,7 @@ final class ProcessIntegrationTests: XCTestCase {
     // MARK: - AppState Session Management
 
     func testStartSessionCreatesRootAgent() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         state.projects = [Project(
             id: projectId, name: "test", path: URL(fileURLWithPath: "/tmp/test"),
@@ -188,7 +188,7 @@ final class ProcessIntegrationTests: XCTestCase {
     }
 
     func testStopSessionMarksAgentsIdle() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         let agentId = UUID()
         state.projects = [Project(
@@ -206,7 +206,7 @@ final class ProcessIntegrationTests: XCTestCase {
     }
 
     func testStopSessionPreservesErrorStatus() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         let agentId = UUID()
         state.projects = [Project(
@@ -223,12 +223,12 @@ final class ProcessIntegrationTests: XCTestCase {
     }
 
     func testTerminalOutputForSelectedProject() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertEqual(state.terminalOutputForSelectedProject, "")
     }
 
     func testSelectedProjectHasSession() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertFalse(state.selectedProjectHasSession)
     }
 }

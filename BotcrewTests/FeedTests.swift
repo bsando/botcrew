@@ -19,7 +19,7 @@ final class FeedTests: XCTestCase {
     // MARK: - eventsForSelectedAgent
 
     func testEventsFilteredByAgent() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let agent1 = makeAgent(id: UUID(), name: "a1")
         let agent2 = makeAgent(id: UUID(), name: "a2")
         let events = [
@@ -40,7 +40,7 @@ final class FeedTests: XCTestCase {
     }
 
     func testEventsOrderedNewestFirst() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let agentId = UUID()
         let agent = makeAgent(id: agentId)
         let events = [
@@ -64,7 +64,7 @@ final class FeedTests: XCTestCase {
     }
 
     func testEventsEmptyWhenNoAgentSelected() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let agentId = UUID()
         let events = [makeEvent(agentId: agentId)]
         let project = Project(id: UUID(), name: "Test", path: URL(fileURLWithPath: "/tmp"),
@@ -78,19 +78,19 @@ final class FeedTests: XCTestCase {
     }
 
     func testEventsEmptyWhenNoProjectSelected() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertTrue(state.eventsForSelectedAgent.isEmpty)
     }
 
     // MARK: - showTerminal toggle
 
     func testShowTerminalDefaultsFalse() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertFalse(state.showTerminal)
     }
 
     func testShowTerminalToggles() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.showTerminal = true
         XCTAssertTrue(state.showTerminal)
         state.showTerminal = false

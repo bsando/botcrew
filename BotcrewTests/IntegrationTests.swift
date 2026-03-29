@@ -9,7 +9,7 @@ final class IntegrationTests: XCTestCase {
     // MARK: - End-to-End Session Flow
 
     func testFullSessionLifecycle() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         state.projects = [Project(
             id: projectId, name: "test-project", path: URL(fileURLWithPath: "/tmp/test"),
@@ -41,7 +41,7 @@ final class IntegrationTests: XCTestCase {
     }
 
     func testSessionWithErrorPreservedOnStop() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         state.projects = [Project(
             id: projectId, name: "test", path: URL(fileURLWithPath: "/tmp"),
@@ -162,7 +162,7 @@ final class IntegrationTests: XCTestCase {
     // MARK: - Office Panel Interaction Flow
 
     func testOfficePanelSnapFlow() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         // Default is ambient
         XCTAssertEqual(state.officePanelHeight, 148)
         XCTAssertEqual(state.officePanelSnap, .ambient)
@@ -211,7 +211,7 @@ final class IntegrationTests: XCTestCase {
     // MARK: - Add Project Flow
 
     func testAddProjectFlow() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertTrue(state.projects.isEmpty)
 
         state.addProject(name: "new-project", path: URL(fileURLWithPath: "/tmp/new"))

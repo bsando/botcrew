@@ -9,7 +9,7 @@ final class PolishTests: XCTestCase {
     // MARK: - Empty States
 
     func testNoProjectSelectedShowsEmptyState() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.projects = []
         state.selectedProjectId = nil
         XCTAssertNil(state.selectedProject)
@@ -17,7 +17,7 @@ final class PolishTests: XCTestCase {
     }
 
     func testProjectWithNoAgentsShowsEmptyAgentState() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         state.projects = [Project(
             id: projectId, name: "test", path: URL(fileURLWithPath: "/tmp"),
@@ -32,7 +32,7 @@ final class PolishTests: XCTestCase {
 
     func testErrorRecoverySetup() {
         // Verifies that error agents can be selected and terminal toggled
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         let agentId = UUID()
         state.projects = [Project(
@@ -55,14 +55,14 @@ final class PolishTests: XCTestCase {
     // MARK: - Expanded Panel Ops Mode
 
     func testExpandedPanelIsOpsMode() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.snapOfficePanel(to: .expanded)
         XCTAssertEqual(state.officePanelSnap, .expanded)
         XCTAssertEqual(state.officePanelHeight, 270)
     }
 
     func testOfficePanelSnapStates() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         // Collapsed
         state.snapOfficePanel(to: .collapsed)
         XCTAssertEqual(state.officePanelSnap, .collapsed)
@@ -77,12 +77,12 @@ final class PolishTests: XCTestCase {
     // MARK: - Multi-Terminal Grid
 
     func testOpenTerminalIdsDefaultEmpty() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         XCTAssertTrue(state.openTerminalIds.isEmpty)
     }
 
     func testOpenTerminalIdsClearedOnProjectSwitch() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let p1 = UUID()
         let p2 = UUID()
         state.projects = [
@@ -98,7 +98,7 @@ final class PolishTests: XCTestCase {
     }
 
     func testMaxFourTerminals() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let ids = (0..<5).map { _ in UUID() }
         state.openTerminalIds = Array(ids.prefix(4))
         XCTAssertEqual(state.openTerminalIds.count, 4)
@@ -108,7 +108,7 @@ final class PolishTests: XCTestCase {
 
     func testComputeLayoutsWithManyAgents() {
         // Ensure layout computation doesn't crash with 8+ agents
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         var agents: [Agent] = []
         let root1 = UUID()

@@ -35,7 +35,7 @@ final class PerformanceTests: XCTestCase {
     // MARK: - Event Filtering Performance
 
     func testEventFilteringWith1000Events() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         let agentId = UUID()
         var events: [ActivityEvent] = []
@@ -64,7 +64,7 @@ final class PerformanceTests: XCTestCase {
     }
 
     func testEventFilteringWith5000Events() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         let agentId = UUID()
         var events: [ActivityEvent] = []
@@ -141,7 +141,7 @@ final class PerformanceTests: XCTestCase {
     // MARK: - State Management Performance
 
     func testProjectSwitchingPerformance() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         var projects: [Project] = []
         for i in 0..<10 {
             let projectId = UUID()
@@ -172,7 +172,7 @@ final class PerformanceTests: XCTestCase {
     // MARK: - Helpers
 
     private func makeStateWithAgents(rootCount: Int, subsPerRoot: Int) -> AppState {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         var agents: [Agent] = []
 

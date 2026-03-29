@@ -60,7 +60,7 @@ final class EdgeCaseTests: XCTestCase {
     // MARK: - Rapid State Changes
 
     func testRapidAgentStatusUpdates() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         let agentId = UUID()
         state.projects = [Project(
@@ -81,7 +81,7 @@ final class EdgeCaseTests: XCTestCase {
     }
 
     func testManyEventsAppended() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         let agentId = UUID()
         state.projects = [Project(
@@ -110,7 +110,7 @@ final class EdgeCaseTests: XCTestCase {
 
     func testOrphanedSubAgent() {
         // Sub-agent with parentId that doesn't match any root
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         let orphanParentId = UUID() // doesn't exist
         let subId = UUID()
@@ -131,7 +131,7 @@ final class EdgeCaseTests: XCTestCase {
 
     func testDeepAgentHierarchy() {
         // 3 roots with 5 subs each = 18 agents
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         var agents: [Agent] = []
         var rootIds: [UUID] = []
@@ -162,14 +162,14 @@ final class EdgeCaseTests: XCTestCase {
     // MARK: - Project Edge Cases
 
     func testSelectNonExistentProject() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         state.projects = []
         state.selectProject(UUID())
         XCTAssertNil(state.selectedProject)
     }
 
     func testRemoveNonExistentProject() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let projectId = UUID()
         state.projects = [Project(
             id: projectId, name: "test", path: URL(fileURLWithPath: "/tmp"),
@@ -182,7 +182,7 @@ final class EdgeCaseTests: XCTestCase {
     }
 
     func testRemoveSelectedProjectSelectsFirst() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let p1 = UUID()
         let p2 = UUID()
         state.projects = [
@@ -197,7 +197,7 @@ final class EdgeCaseTests: XCTestCase {
     }
 
     func testRemoveLastProject() {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
         let p1 = UUID()
         state.projects = [Project(
             id: p1, name: "only", path: URL(fileURLWithPath: "/tmp"),
