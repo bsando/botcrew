@@ -735,8 +735,9 @@ class AppState {
                 projects[idx].agents[agentIdx].status = newStatus
             }
 
-            // Add activity event
-            let activityEvent = ActivityEvent(
+            // Add activity event with structured content
+            let toolContent = AgentStateParser.extractToolContent(from: toolUse.name, input: toolUse.input)
+            var activityEvent = ActivityEvent(
                 id: UUID(),
                 agentId: agentId,
                 timestamp: event.timestamp ?? Date(),
@@ -744,6 +745,9 @@ class AppState {
                 file: filePath,
                 meta: toolUse.name
             )
+            activityEvent.content = toolContent.content
+            activityEvent.oldString = toolContent.oldString
+            activityEvent.command = toolContent.command
             projects[idx].events.append(activityEvent)
 
             // Reset idle timer for this agent
@@ -957,14 +961,19 @@ class AppState {
                 let filePath = AgentStateParser.extractFilePath(from: toolUse.input)
                 lastStatus = AgentStateParser.statusFromToolUse(toolUse.name)
 
-                projects[idx].events.append(ActivityEvent(
+                let toolContent = AgentStateParser.extractToolContent(from: toolUse.name, input: toolUse.input)
+                var activityEvent = ActivityEvent(
                     id: UUID(),
                     agentId: rootAgent.id,
                     timestamp: event.timestamp ?? modDate,
                     type: eventType,
                     file: filePath,
                     meta: toolUse.name
-                ))
+                )
+                activityEvent.content = toolContent.content
+                activityEvent.oldString = toolContent.oldString
+                activityEvent.command = toolContent.command
+                projects[idx].events.append(activityEvent)
             }
             if AgentStateParser.containsError(event) {
                 lastStatus = .error
@@ -1053,14 +1062,19 @@ class AppState {
                 let fp = AgentStateParser.extractFilePath(from: toolUse.input)
                 lastStatus = AgentStateParser.statusFromToolUse(toolUse.name)
 
-                projects[projectIdx].events.append(ActivityEvent(
+                let toolContent = AgentStateParser.extractToolContent(from: toolUse.name, input: toolUse.input)
+                var activityEvent = ActivityEvent(
                     id: UUID(),
                     agentId: subAgent.id,
                     timestamp: event.timestamp ?? Date(),
                     type: eventType,
                     file: fp,
                     meta: toolUse.name
-                ))
+                )
+                activityEvent.content = toolContent.content
+                activityEvent.oldString = toolContent.oldString
+                activityEvent.command = toolContent.command
+                projects[projectIdx].events.append(activityEvent)
             }
             if AgentStateParser.containsError(event) {
                 lastStatus = .error

@@ -108,6 +108,20 @@ struct AgentStateParser {
             ?? toolInput["command"] as? String
     }
 
+    /// Extract structured content fields from a tool use for display in feed cards
+    static func extractToolContent(from toolName: String, input: [String: Any]) -> (content: String?, oldString: String?, command: String?) {
+        switch toolName {
+        case "Write", "NotebookEdit":
+            return (content: input["content"] as? String, oldString: nil, command: nil)
+        case "Edit":
+            return (content: input["new_string"] as? String, oldString: input["old_string"] as? String, command: nil)
+        case "Bash":
+            return (content: nil, oldString: nil, command: input["command"] as? String)
+        default:
+            return (content: nil, oldString: nil, command: nil)
+        }
+    }
+
     // MARK: - Error Detection
 
     /// Check if event content contains an error

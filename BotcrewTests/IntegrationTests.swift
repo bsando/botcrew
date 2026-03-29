@@ -272,6 +272,55 @@ final class IntegrationTests: XCTestCase {
         XCTAssertEqual(usage?.output, 14)
     }
 
+    // MARK: - Tool Content Extraction
+
+    func testExtractToolContentWrite() {
+        let (content, oldString, command) = AgentStateParser.extractToolContent(
+            from: "Write", input: ["file_path": "/tmp/hello.swift", "content": "print(\"hello\")"]
+        )
+        XCTAssertEqual(content, "print(\"hello\")")
+        XCTAssertNil(oldString)
+        XCTAssertNil(command)
+    }
+
+    func testExtractToolContentEdit() {
+        let (content, oldString, command) = AgentStateParser.extractToolContent(
+            from: "Edit", input: ["file_path": "/tmp/a.swift", "old_string": "let x = 1", "new_string": "let x = 2"]
+        )
+        XCTAssertEqual(content, "let x = 2")
+        XCTAssertEqual(oldString, "let x = 1")
+        XCTAssertNil(command)
+    }
+
+    func testExtractToolContentBash() {
+        let (content, oldString, command) = AgentStateParser.extractToolContent(
+            from: "Bash", input: ["command": "swift build"]
+        )
+        XCTAssertNil(content)
+        XCTAssertNil(oldString)
+        XCTAssertEqual(command, "swift build")
+    }
+
+    func testExtractToolContentRead() {
+        let (content, oldString, command) = AgentStateParser.extractToolContent(
+            from: "Read", input: ["file_path": "/tmp/a.swift"]
+        )
+        XCTAssertNil(content)
+        XCTAssertNil(oldString)
+        XCTAssertNil(command)
+    }
+
+    func testJSONLEventPopulatesActivityEventContent() {
+        let line = """
+        {"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"/tmp/a.swift","old_string":"let x = 1","new_string":"let x = 2"}}]},"timestamp":"2026-03-17T12:00:00.000Z"}
+        """
+        let event = AgentStateParser.parseJSONLLine(line)!
+        let toolUses = AgentStateParser.extractToolUses(from: event)
+        let toolContent = AgentStateParser.extractToolContent(from: toolUses[0].name, input: toolUses[0].input)
+        XCTAssertEqual(toolContent.content, "let x = 2")
+        XCTAssertEqual(toolContent.oldString, "let x = 1")
+    }
+
     func testRealWorldFileHistorySnapshot() {
         let line = """
         {"type":"file-history-snapshot","messageId":"uuid-1","snapshot":{"messageId":"uuid-1","trackedFileBackups":{},"timestamp":"2026-03-17T12:00:00.000Z"},"isSnapshotUpdate":false}
