@@ -4,8 +4,7 @@
 import Foundation
 
 /// Wraps a Foundation.Process that runs the `claude` CLI.
-/// Captures stdout into a ring buffer for the terminal view.
-/// Parses stream-json events for structured output and permission denials.
+/// Parses stream-json events into structured terminal entries.
 @Observable
 class ClaudeCodeProcess: Identifiable {
     let id: UUID
@@ -17,8 +16,14 @@ class ClaudeCodeProcess: Identifiable {
     private(set) var lastSessionId: String?
     private(set) var lastPermissionDenials: [[String: Any]] = []
 
-    /// Terminal output snapshot — updated at most every 200ms
+    /// Structured terminal entries — the primary display model
+    private(set) var terminalEntries: [TerminalEntry] = []
+
+    /// Legacy plain-text output (joined from entries for compatibility)
     private(set) var terminalOutput: String = ""
+
+    /// Whether Claude is currently generating a response
+    private(set) var isThinking = false
 
     /// Callback when permission denials are detected
     var onPermissionDenials: ((_ sessionId: String, _ denials: [[String: Any]]) -> Void)?
@@ -29,12 +34,15 @@ class ClaudeCodeProcess: Identifiable {
     private var process: Process?
     private var stdoutPipe: Pipe?
     private var stderrPipe: Pipe?
-    private let bufferCapacity = 2000
+    private let maxEntries = 500
 
-    // Ring buffer internals — NOT observed (mutations don't trigger SwiftUI updates)
-    private var _ringBuffer: [String] = []
-    private var _bufferDirty = false
+    // Throttled update internals
+    private var _pendingEntries: [TerminalEntry] = []
+    private var _dirty = false
     private var _flushTimer: Timer?
+
+    // Accumulate assistant text within a single message
+    private var _currentAssistantText: String = ""
 
     /// Path to the claude CLI
     static let claudePath: String = {
@@ -127,20 +135,25 @@ class ClaudeCodeProcess: Identifiable {
             guard !data.isEmpty, let self = self else { return }
             if let text = String(data: data, encoding: .utf8) {
                 let lines = text.components(separatedBy: .newlines)
+                    .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
                 DispatchQueue.main.async {
-                    self.appendToBuffer(lines)
+                    for line in lines {
+                        self.addEntry(.init(kind: .raw(line)))
+                    }
                 }
             }
         }
 
         proc.terminationHandler = { [weak self] proc in
             DispatchQueue.main.async {
+                self?.finalizeAssistantText()
                 self?.isRunning = false
+                self?.isThinking = false
                 self?.hasRanBefore = true
                 self?.exitCode = proc.terminationStatus
                 self?.stdoutPipe?.fileHandleForReading.readabilityHandler = nil
                 self?.stderrPipe?.fileHandleForReading.readabilityHandler = nil
-                self?.flushBuffer() // Final flush
+                self?.flushEntries()
                 self?._flushTimer?.invalidate()
                 self?._flushTimer = nil
             }
@@ -149,10 +162,11 @@ class ClaudeCodeProcess: Identifiable {
         do {
             try proc.run()
             isRunning = true
-            let modeLabel = isContinuation ? " --continue" : ""
-            appendToBuffer(["", "$ claude\(modeLabel) \"\(prompt)\"", ""])
+            // Add user prompt entry
+            addEntry(.init(kind: .userPrompt(prompt)))
+            isThinking = true
         } catch {
-            appendToBuffer(["Error launching claude: \(error.localizedDescription)"])
+            addEntry(.init(kind: .error("Error launching claude: \(error.localizedDescription)")))
             isRunning = false
         }
     }
@@ -163,20 +177,38 @@ class ClaudeCodeProcess: Identifiable {
         proc.terminate()
     }
 
-    // MARK: - Throttled buffer flush
+    // MARK: - Throttled entry flush
 
     private func startFlushTimer() {
         _flushTimer?.invalidate()
         _flushTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
-            self?.flushBuffer()
+            self?.flushEntries()
         }
     }
 
-    /// Push ring buffer contents to the observed terminalOutput property
-    private func flushBuffer() {
-        guard _bufferDirty else { return }
-        _bufferDirty = false
-        terminalOutput = _ringBuffer.joined(separator: "\n")
+    private func flushEntries() {
+        guard _dirty else { return }
+        _dirty = false
+        terminalEntries = _pendingEntries
+        rebuildPlainText()
+    }
+
+    private func addEntry(_ entry: TerminalEntry) {
+        _pendingEntries.append(entry)
+        if _pendingEntries.count > maxEntries {
+            _pendingEntries.removeFirst(_pendingEntries.count - maxEntries)
+        }
+        _dirty = true
+    }
+
+    /// Replace the last entry if it matches a predicate, or append
+    private func replaceLastOrAdd(_ entry: TerminalEntry, where predicate: (TerminalEntry) -> Bool) {
+        if let lastIdx = _pendingEntries.lastIndex(where: predicate) {
+            _pendingEntries[lastIdx] = entry
+        } else {
+            _pendingEntries.append(entry)
+        }
+        _dirty = true
     }
 
     // MARK: - Stream JSON parsing
@@ -194,7 +226,7 @@ class ClaudeCodeProcess: Identifiable {
             guard !trimmed.isEmpty else { continue }
             guard let data = trimmed.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                appendToBuffer([trimmed])
+                addEntry(.init(kind: .raw(trimmed)))
                 continue
             }
 
@@ -207,23 +239,54 @@ class ClaudeCodeProcess: Identifiable {
                     lastSessionId = sessionId
                 }
 
+            case "user":
+                // User messages from continuation/resume
+                if let message = json["message"] as? [String: Any] {
+                    if let content = message["content"] as? String, !content.isEmpty {
+                        addEntry(.init(kind: .userPrompt(content)))
+                        isThinking = true
+                    } else if let contentArr = message["content"] as? [[String: Any]] {
+                        for item in contentArr {
+                            if item["type"] as? String == "text",
+                               let text = item["text"] as? String, !text.isEmpty {
+                                addEntry(.init(kind: .userPrompt(text)))
+                                isThinking = true
+                            }
+                        }
+                    }
+                }
+
             case "assistant":
+                isThinking = false
                 if let message = json["message"] as? [String: Any],
                    let content = message["content"] as? [[String: Any]] {
                     for item in content {
                         let itemType = item["type"] as? String ?? ""
                         if itemType == "text", let text = item["text"] as? String {
-                            appendToBuffer(text.components(separatedBy: .newlines))
+                            // Accumulate text into current assistant message
+                            _currentAssistantText += text
+                            // Update or add the assistant text entry
+                            let entry = TerminalEntry(kind: .assistantText(_currentAssistantText))
+                            replaceLastOrAdd(entry) { e in
+                                if case .assistantText = e.kind { return true }
+                                return false
+                            }
                         } else if itemType == "tool_use" {
+                            // Finalize any pending assistant text before tool use
+                            finalizeAssistantText()
                             let name = item["name"] as? String ?? "?"
                             let input = item["input"] as? [String: Any] ?? [:]
                             let summary = toolUseSummary(name: name, input: input)
-                            appendToBuffer(["", "[\(name)] \(summary)"])
+                            addEntry(.init(kind: .toolUse(name: name, summary: summary)))
+                            // Claude will be "thinking" again after tool use
+                            isThinking = true
                         }
                     }
                 }
 
             case "result":
+                isThinking = false
+                finalizeAssistantText()
                 if let denials = json["permission_denials"] as? [[String: Any]], !denials.isEmpty {
                     lastPermissionDenials = denials
                     if let sessionId = json["session_id"] as? String {
@@ -237,6 +300,13 @@ class ClaudeCodeProcess: Identifiable {
         }
     }
 
+    /// Finalize accumulated assistant text so a new message can start
+    private func finalizeAssistantText() {
+        if !_currentAssistantText.isEmpty {
+            _currentAssistantText = ""
+        }
+    }
+
     private func toolUseSummary(name: String, input: [String: Any]) -> String {
         switch name {
         case "Read":
@@ -247,34 +317,57 @@ class ClaudeCodeProcess: Identifiable {
             return input["file_path"] as? String ?? ""
         case "Bash":
             let cmd = input["command"] as? String ?? ""
-            return cmd.count > 60 ? String(cmd.prefix(60)) + "..." : cmd
+            return cmd.count > 80 ? String(cmd.prefix(80)) + "..." : cmd
         case "Glob":
             return input["pattern"] as? String ?? ""
         case "Grep":
             return input["pattern"] as? String ?? ""
+        case "Agent", "Task":
+            return input["description"] as? String ?? input["prompt"] as? String ?? ""
         default:
             return ""
         }
     }
 
-    /// Inject text into the terminal buffer (for slash command output, etc.)
+    // MARK: - Legacy plain text
+
+    private func rebuildPlainText() {
+        terminalOutput = terminalEntries.map { entry in
+            switch entry.kind {
+            case .userPrompt(let text):
+                return "\n> \(text)\n"
+            case .thinking:
+                return "  Thinking..."
+            case .assistantText(let text):
+                return text
+            case .toolUse(let name, let summary):
+                return "  [\(name)] \(summary)"
+            case .toolResult(_, let output):
+                return "  \(output)"
+            case .system(let text):
+                return "  \(text)"
+            case .error(let text):
+                return "  Error: \(text)"
+            case .raw(let text):
+                return text
+            }
+        }.joined(separator: "\n")
+    }
+
+    // MARK: - Public helpers
+
+    /// Inject text into the terminal (for command output, etc.)
     func appendOutput(_ lines: [String]) {
-        appendToBuffer(lines)
-        flushBuffer()
-    }
-
-    /// Clear the terminal buffer
-    func clearBuffer() {
-        _ringBuffer.removeAll()
-        _bufferDirty = true
-        flushBuffer()
-    }
-
-    private func appendToBuffer(_ lines: [String]) {
-        _ringBuffer.append(contentsOf: lines.filter { !$0.isEmpty })
-        if _ringBuffer.count > bufferCapacity {
-            _ringBuffer.removeFirst(_ringBuffer.count - bufferCapacity)
+        for line in lines where !line.isEmpty {
+            addEntry(.init(kind: .raw(line)))
         }
-        _bufferDirty = true
+        flushEntries()
+    }
+
+    /// Clear the terminal
+    func clearBuffer() {
+        _pendingEntries.removeAll()
+        _dirty = true
+        flushEntries()
     }
 }

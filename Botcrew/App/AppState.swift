@@ -437,44 +437,23 @@ class AppState {
         // If already running, ignore (user should wait)
     }
 
-    // MARK: - Slash Commands
+    // MARK: - Commands
 
-    func executeSlashCommand(_ command: SlashCommand, projectId: UUID) {
+    /// Execute a Botcrew-local command (\command)
+    func executeBotcrewCommand(_ command: BotcrewCommand, projectId: UUID) {
         guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
         let project = projects[idx]
-
-        // Pass-through commands: forward to active Claude session
-        if !command.isLocal {
-            passCommandToClaude(command, projectId: projectId)
-            return
-        }
 
         switch command {
         case .help:
             var lines = ["", "  Available commands:", ""]
-            let localCmds = SlashCommand.allCases.filter(\.isLocal)
-            let passCmds = SlashCommand.allCases.filter { !$0.isLocal }
-            lines.append("  Local (handled by Botcrew):")
-            lines += localCmds.map { "    \($0.name.padding(toLength: 16, withPad: " ", startingAt: 0)) \($0.description)" }
+            lines.append("  Botcrew (\\command):")
+            lines += BotcrewCommand.allCases.map { "    \($0.name.padding(toLength: 16, withPad: " ", startingAt: 0)) \($0.description)" }
             lines.append("")
-            lines.append("  Session (forwarded to Claude):")
-            lines += passCmds.map { "    \($0.name.padding(toLength: 16, withPad: " ", startingAt: 0)) \($0.description)" }
+            lines.append("  Claude CLI (/command):")
+            lines += SlashCommand.allCases.map { "    \($0.name.padding(toLength: 16, withPad: " ", startingAt: 0)) \($0.description)" }
             lines.append("")
             appendCommandOutput(lines, projectId: projectId)
-
-        case .agents:
-            if project.agents.isEmpty {
-                appendCommandOutput(["", "  No agents in this project.", ""], projectId: projectId)
-            } else {
-                var lines = ["", "  Agents (\(project.agents.count)):"]
-                for agent in project.agents {
-                    let role = agent.parentId == nil ? "root" : "sub "
-                    let status = agent.status.rawValue
-                    lines.append("    [\(role)] \(agent.name) — \(status)")
-                }
-                lines.append("")
-                appendCommandOutput(lines, projectId: projectId)
-            }
 
         case .cost:
             showCostDashboard = true
@@ -527,16 +506,12 @@ class AppState {
             appendCommandOutput(["", "  Terminal \(state). (⌘T)", ""], projectId: projectId)
 
         case .version:
-            // Run claude --version and show output
             runClaudeVersion(projectId: projectId)
-
-        default:
-            break
         }
     }
 
-    /// Forward a slash command to the active Claude session as a continuation
-    private func passCommandToClaude(_ command: SlashCommand, projectId: UUID) {
+    /// Forward a slash command to the active Claude CLI session (/command)
+    func executeSlashCommand(_ command: SlashCommand, projectId: UUID) {
         if let proc = processes[projectId], !proc.isRunning, proc.hasRanBefore {
             proc.send(prompt: command.name, isContinuation: true, permissionMode: permissionMode.rawValue)
             showTerminal = true
@@ -858,6 +833,15 @@ class AppState {
             return ""
         }
         return proc.terminalOutput
+    }
+
+    /// Get structured terminal entries for the selected project
+    var terminalEntriesForSelectedProject: [TerminalEntry] {
+        guard let projectId = selectedProjectId,
+              let proc = processes[projectId] else {
+            return []
+        }
+        return proc.terminalEntries
     }
 
     /// Whether the selected project has a running session

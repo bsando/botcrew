@@ -264,8 +264,7 @@ final class EdgeCaseTests: XCTestCase {
 
     func testProcessDoubleStart() {
         let proc = ClaudeCodeProcess(
-            projectPath: URL(fileURLWithPath: "/tmp"),
-            prompt: "test"
+            projectPath: URL(fileURLWithPath: "/tmp")
         )
         // Should not crash if process isn't actually running
         XCTAssertFalse(proc.isRunning)
@@ -273,8 +272,7 @@ final class EdgeCaseTests: XCTestCase {
 
     func testProcessStopWhenNotRunning() {
         let proc = ClaudeCodeProcess(
-            projectPath: URL(fileURLWithPath: "/tmp"),
-            prompt: "test"
+            projectPath: URL(fileURLWithPath: "/tmp")
         )
         // Stopping when not running should be a no-op
         proc.stop()

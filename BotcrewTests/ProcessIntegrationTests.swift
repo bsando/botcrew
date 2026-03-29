@@ -134,20 +134,17 @@ final class ProcessIntegrationTests: XCTestCase {
 
     func testProcessInitialization() {
         let proc = ClaudeCodeProcess(
-            projectPath: URL(fileURLWithPath: "/tmp"),
-            prompt: "test prompt"
+            projectPath: URL(fileURLWithPath: "/tmp")
         )
         XCTAssertFalse(proc.isRunning)
-        XCTAssertNil(proc.sessionId)
-        XCTAssertTrue(proc.ringBuffer.isEmpty)
+        XCTAssertNil(proc.lastSessionId)
+        XCTAssertTrue(proc.terminalEntries.isEmpty)
         XCTAssertNil(proc.exitCode)
-        XCTAssertEqual(proc.prompt, "test prompt")
     }
 
     func testProcessTerminalOutput() {
         let proc = ClaudeCodeProcess(
-            projectPath: URL(fileURLWithPath: "/tmp"),
-            prompt: "test"
+            projectPath: URL(fileURLWithPath: "/tmp")
         )
         XCTAssertEqual(proc.terminalOutput, "")
     }

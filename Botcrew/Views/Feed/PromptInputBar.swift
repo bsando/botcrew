@@ -15,25 +15,31 @@ struct PromptInputBar: View {
         return appState.processes[projectId]?.isRunning == true
     }
 
-    private var matchingCommands: [SlashCommand] {
-        guard promptText.hasPrefix("/") else { return [] }
-        let query = String(promptText.dropFirst())
-        return SlashCommand.matching(query)
+    /// Autocomplete items — unified wrapper for both command types
+    private var autocompleteItems: [AutocompleteItem] {
+        if promptText.hasPrefix("\\") {
+            let query = String(promptText.dropFirst())
+            return BotcrewCommand.matching(query).map { .botcrew($0) }
+        } else if promptText.hasPrefix("/") {
+            let query = String(promptText.dropFirst())
+            return SlashCommand.matching(query).map { .slash($0) }
+        }
+        return []
     }
 
     private var showAutocomplete: Bool {
-        promptText.hasPrefix("/") && !matchingCommands.isEmpty && isFocused
+        !autocompleteItems.isEmpty && isFocused
     }
 
     var body: some View {
         VStack(spacing: 0) {
             // Autocomplete popup
             if showAutocomplete {
-                SlashCommandAutocomplete(
-                    commands: matchingCommands,
+                CommandAutocomplete(
+                    items: autocompleteItems,
                     selectedIndex: selectedCommandIndex,
-                    onSelect: { command in
-                        executeCommand(command)
+                    onSelect: { item in
+                        executeItem(item)
                     }
                 )
             }
@@ -104,7 +110,6 @@ struct PromptInputBar: View {
                     .onSubmit { submitPrompt() }
                     .disabled(isProcessRunning)
                     .onChange(of: promptText) { _, newValue in
-                        // Reset selection when text changes
                         selectedCommandIndex = 0
                     }
                     .onKeyPress(.upArrow) {
@@ -114,13 +119,13 @@ struct PromptInputBar: View {
                     }
                     .onKeyPress(.downArrow) {
                         guard showAutocomplete else { return .ignored }
-                        selectedCommandIndex = min(matchingCommands.count - 1, selectedCommandIndex + 1)
+                        selectedCommandIndex = min(autocompleteItems.count - 1, selectedCommandIndex + 1)
                         return .handled
                     }
                     .onKeyPress(.tab) {
-                        guard showAutocomplete, !matchingCommands.isEmpty else { return .ignored }
-                        let cmd = matchingCommands[selectedCommandIndex]
-                        promptText = cmd.name
+                        guard showAutocomplete, !autocompleteItems.isEmpty else { return .ignored }
+                        let item = autocompleteItems[selectedCommandIndex]
+                        promptText = item.name
                         return .handled
                     }
                     .onKeyPress(.escape) {
@@ -183,20 +188,35 @@ struct PromptInputBar: View {
            let proc = appState.processes[projectId], proc.hasRanBefore {
             return "Send a follow-up message..."
         }
-        return "Ask Claude something... (type / for commands)"
+        return "Ask Claude something... (type / or \\ for commands)"
     }
 
-    private func executeCommand(_ command: SlashCommand) {
+    private func executeItem(_ item: AutocompleteItem) {
         promptText = ""
         guard let projectId = appState.selectedProjectId else { return }
-        appState.executeSlashCommand(command, projectId: projectId)
+        switch item {
+        case .botcrew(let cmd):
+            appState.executeBotcrewCommand(cmd, projectId: projectId)
+        case .slash(let cmd):
+            appState.executeSlashCommand(cmd, projectId: projectId)
+        }
     }
 
     private func submitPrompt() {
         let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let projectId = appState.selectedProjectId else { return }
 
-        // Check if it's a slash command
+        // Check if it's a Botcrew local command (\command)
+        if text.hasPrefix("\\") {
+            let cmdName = String(text.dropFirst()).components(separatedBy: " ").first ?? ""
+            if let command = BotcrewCommand(rawValue: cmdName) {
+                promptText = ""
+                appState.executeBotcrewCommand(command, projectId: projectId)
+                return
+            }
+        }
+
+        // Check if it's a CLI slash command (/command)
         if text.hasPrefix("/") {
             let cmdName = String(text.dropFirst()).components(separatedBy: " ").first ?? ""
             if let command = SlashCommand(rawValue: cmdName) {
@@ -212,30 +232,58 @@ struct PromptInputBar: View {
     }
 }
 
+// MARK: - Unified autocomplete item
+
+private enum AutocompleteItem: Hashable {
+    case botcrew(BotcrewCommand)
+    case slash(SlashCommand)
+
+    var name: String {
+        switch self {
+        case .botcrew(let cmd): cmd.name
+        case .slash(let cmd): cmd.name
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .botcrew(let cmd): cmd.description
+        case .slash(let cmd): cmd.description
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .botcrew(let cmd): cmd.icon
+        case .slash(let cmd): cmd.icon
+        }
+    }
+}
+
 // MARK: - Autocomplete popup
 
-private struct SlashCommandAutocomplete: View {
-    let commands: [SlashCommand]
+private struct CommandAutocomplete: View {
+    let items: [AutocompleteItem]
     let selectedIndex: Int
-    let onSelect: (SlashCommand) -> Void
+    let onSelect: (AutocompleteItem) -> Void
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(commands.enumerated()), id: \.element) { index, command in
+            ForEach(Array(items.enumerated()), id: \.element) { index, item in
                 Button {
-                    onSelect(command)
+                    onSelect(item)
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: command.icon)
+                        Image(systemName: item.icon)
                             .font(.system(size: 11))
                             .foregroundStyle(index == selectedIndex ? .white : Theme.textSecondary(colorScheme))
                             .frame(width: 16)
-                        Text(command.name)
+                        Text(item.name)
                             .font(.system(size: 13, weight: .medium, design: .monospaced))
                             .foregroundStyle(index == selectedIndex ? .white : Theme.textPrimary(colorScheme))
                         Spacer()
-                        Text(command.description)
+                        Text(item.description)
                             .font(.system(size: 11))
                             .foregroundStyle(index == selectedIndex ? .white.opacity(0.7) : Theme.textMuted(colorScheme))
                     }

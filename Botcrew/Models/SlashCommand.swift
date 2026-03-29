@@ -3,10 +3,10 @@
 
 import Foundation
 
-enum SlashCommand: String, CaseIterable {
-    // Local commands (handled by Botcrew)
+// MARK: - Botcrew local commands (triggered by \command)
+
+enum BotcrewCommand: String, CaseIterable {
     case help
-    case agents
     case cost
     case clear
     case status
@@ -17,7 +17,50 @@ enum SlashCommand: String, CaseIterable {
     case terminal
     case version
 
-    // Pass-through commands (forwarded to Claude CLI session)
+    var name: String { "\\" + rawValue }
+
+    var description: String {
+        switch self {
+        case .help: "Show available commands"
+        case .cost: "Open cost dashboard"
+        case .clear: "Clear terminal output"
+        case .status: "Show project status"
+        case .resume: "Resume a previous session"
+        case .model: "Show model info from last session"
+        case .git: "Open git panel"
+        case .templates: "Open prompt templates"
+        case .terminal: "Toggle terminal view"
+        case .version: "Show Claude Code version"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .help: "questionmark.circle"
+        case .cost: "dollarsign.circle"
+        case .clear: "trash"
+        case .status: "info.circle"
+        case .resume: "arrow.clockwise"
+        case .model: "cpu"
+        case .git: "arrow.triangle.branch"
+        case .templates: "list.bullet.rectangle"
+        case .terminal: "terminal"
+        case .version: "info.circle"
+        }
+    }
+
+    /// Filter commands matching a partial query (without the leading \)
+    static func matching(_ query: String) -> [BotcrewCommand] {
+        let q = query.lowercased()
+        if q.isEmpty { return allCases }
+        return allCases.filter { $0.rawValue.hasPrefix(q) }
+    }
+}
+
+// MARK: - Claude CLI commands (triggered by /command, forwarded to CLI)
+
+enum SlashCommand: String, CaseIterable {
+    case agents
     case compact
     case commit
     case diff
@@ -43,17 +86,7 @@ enum SlashCommand: String, CaseIterable {
 
     var description: String {
         switch self {
-        case .help: "Show available slash commands"
-        case .agents: "List agents in the current project"
-        case .cost: "Open cost dashboard"
-        case .clear: "Clear terminal output"
-        case .status: "Show project status"
-        case .resume: "Resume a previous session"
-        case .model: "Show model info from last session"
-        case .git: "Open git panel"
-        case .templates: "Open prompt templates"
-        case .terminal: "Toggle terminal view"
-        case .version: "Show Claude Code version"
+        case .agents: "List agents in the current session"
         case .compact: "Compact the conversation context"
         case .commit: "Create a git commit"
         case .diff: "View uncommitted changes"
@@ -79,17 +112,7 @@ enum SlashCommand: String, CaseIterable {
 
     var icon: String {
         switch self {
-        case .help: "questionmark.circle"
         case .agents: "person.3"
-        case .cost: "dollarsign.circle"
-        case .clear: "trash"
-        case .status: "info.circle"
-        case .resume: "arrow.clockwise"
-        case .model: "cpu"
-        case .git: "arrow.triangle.branch"
-        case .templates: "list.bullet.rectangle"
-        case .terminal: "terminal"
-        case .version: "info.circle"
         case .compact: "arrow.down.right.and.arrow.up.left"
         case .commit: "checkmark.circle"
         case .diff: "doc.text.magnifyingglass"
@@ -110,17 +133,6 @@ enum SlashCommand: String, CaseIterable {
         case .files: "doc.on.doc"
         case .debug: "ant"
         case .init_: "plus.circle"
-        }
-    }
-
-    /// Whether this command is handled locally by Botcrew (vs forwarded to Claude)
-    var isLocal: Bool {
-        switch self {
-        case .help, .agents, .cost, .clear, .status, .resume,
-             .model, .git, .templates, .terminal, .version:
-            return true
-        default:
-            return false
         }
     }
 

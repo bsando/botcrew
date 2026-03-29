@@ -61,6 +61,7 @@
 		D7FA0EDA7B87D017E9C49346 /* PolishTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE19CAF6760DDF806B813EC9 /* PolishTests.swift */; };
 		D9F58808E338FB1EC97C9C68 /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92E3C5D8F0DE1A5E8057BC50 /* PerformanceTests.swift */; };
 		E8A3949879DDE7AC05A24E90 /* RateLimitInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8F6383454A375EA00F8974 /* RateLimitInfo.swift */; };
+		F023B294AA9DDB2471DB4888 /* TerminalEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F289C7180E575033AD8B656F /* TerminalEntry.swift */; };
 		F0B61FDE92D5DA2485F24353 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B1F9AC30C68D2243274862 /* Theme.swift */; };
 		F2553F6112AE3CED74C82537 /* SpriteRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B26947A8671269C73A984F7 /* SpriteRenderer.swift */; };
 /* End PBXBuildFile section */
@@ -139,6 +140,7 @@
 		E5E509AD6AD64B33C0B796F6 /* ToolCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolCardView.swift; sourceTree = "<group>"; };
 		F0CDB27390ED954D0B7977BA /* JSONLWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLWatcher.swift; sourceTree = "<group>"; };
 		F173FFC4CC35C0F96EFA248B /* OfficeCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeCanvasView.swift; sourceTree = "<group>"; };
+		F289C7180E575033AD8B656F /* TerminalEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalEntry.swift; sourceTree = "<group>"; };
 		F2A04F4CF1E7727F18D93AE3 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
 		F36A39EA75AB474DA72F3582 /* MacFrameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacFrameView.swift; sourceTree = "<group>"; };
 		F63B46BD12BE0344F5860342 /* BotcrewTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BotcrewTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -182,6 +184,7 @@
 				5E8F6383454A375EA00F8974 /* RateLimitInfo.swift */,
 				9C9CB549A52F43D29B1081CE /* SessionInfo.swift */,
 				208A89A8B594BCAF9D13E01B /* SlashCommand.swift */,
+				F289C7180E575033AD8B656F /* TerminalEntry.swift */,
 				150DF5D6952D045869EF9171 /* ToolApproval.swift */,
 			);
 			path = Models;
@@ -474,6 +477,7 @@
 				F2553F6112AE3CED74C82537 /* SpriteRenderer.swift in Sources */,
 				AA237687946E11A6C56D9876 /* SubTabView.swift in Sources */,
 				AEE8BEA8EDBBAFC3516DFB12 /* TabBarView.swift in Sources */,
+				F023B294AA9DDB2471DB4888 /* TerminalEntry.swift in Sources */,
 				4E538425B976BE8D0A484D0C /* TerminalView.swift in Sources */,
 				F0B61FDE92D5DA2485F24353 /* Theme.swift in Sources */,
 				B6B22EB79C727D983F47C315 /* TokenCard.swift in Sources */,
