@@ -5,7 +5,12 @@ import SwiftUI
 
 @main
 struct BotcrewApp: App {
-    @State private var appState = AppState()
+    @State private var appState: AppState = {
+        if ProcessInfo.processInfo.arguments.contains("-UITestMode") {
+            return AppState.withMockData()
+        }
+        return AppState()
+    }()
 
     var body: some Scene {
         WindowGroup {

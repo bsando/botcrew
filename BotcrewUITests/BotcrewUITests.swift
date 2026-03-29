@@ -10,10 +10,14 @@ final class BotcrewUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        app.launchArguments = ["-UITestMode"]
         app.launch()
     }
 
     override func tearDownWithError() throws {
+        if let app = app {
+            app.terminate()
+        }
         app = nil
     }
 
@@ -66,12 +70,17 @@ final class BotcrewUITests: XCTestCase {
     // MARK: - Tab Bar
 
     func testTabBarShowsRootAgents() throws {
-        let orchestrator = app.staticTexts["orchestrator"]
+        // Agent names may be inside buttons or other containers — search descendants
+        let orchestrator = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label == 'orchestrator'")
+        ).firstMatch
         XCTAssertTrue(orchestrator.waitForExistence(timeout: 5), "Should show orchestrator tab")
     }
 
     func testTabBarShowsUiBuilder() throws {
-        let uiBuilder = app.staticTexts["ui-builder"]
+        let uiBuilder = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label == 'ui-builder'")
+        ).firstMatch
         XCTAssertTrue(uiBuilder.waitForExistence(timeout: 5), "Should show ui-builder tab")
     }
 
@@ -85,27 +94,18 @@ final class BotcrewUITests: XCTestCase {
     // MARK: - Feed
 
     func testActivityTerminalToggleExists() throws {
-        // First select an agent
-        let orchestrator = app.staticTexts["orchestrator"]
-        if orchestrator.waitForExistence(timeout: 5) {
-            orchestrator.click()
-        }
+        // Mock data selects "botcrew" project with agents, so toggle should be visible immediately
         let activityButton = app.buttons["Activity"]
+        XCTAssertTrue(activityButton.waitForExistence(timeout: 5), "Should show Activity toggle")
         let terminalButton = app.buttons["Terminal"]
-        XCTAssertTrue(activityButton.waitForExistence(timeout: 3), "Should show Activity toggle")
         XCTAssertTrue(terminalButton.exists, "Should show Terminal toggle")
     }
 
     func testTerminalToggleSwitchesView() throws {
-        // Select an agent first
-        let orchestrator = app.staticTexts["orchestrator"]
-        if orchestrator.waitForExistence(timeout: 5) {
-            orchestrator.click()
-        }
         let terminalButton = app.buttons["Terminal"]
-        if terminalButton.waitForExistence(timeout: 3) {
+        if terminalButton.waitForExistence(timeout: 5) {
             terminalButton.click()
-            // Terminal view should show monospaced content
+            // Terminal view should show — Activity button should still be visible
             let activityButton = app.buttons["Activity"]
             XCTAssertTrue(activityButton.exists, "Activity button should still be visible")
         }
@@ -114,9 +114,7 @@ final class BotcrewUITests: XCTestCase {
     // MARK: - Empty States
 
     func testEmptyProjectStateAfterRemovingAll() throws {
-        // This tests the empty state flow conceptually
-        // We can't easily remove all projects in UI test without context menus
-        // but we verify the empty agent state works
+        // Verify the empty agent state works when selecting a project with no agents
         let apiServer = app.staticTexts["api-server"]
         XCTAssertTrue(apiServer.waitForExistence(timeout: 5))
         apiServer.click()

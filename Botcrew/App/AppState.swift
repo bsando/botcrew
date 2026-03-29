@@ -1073,7 +1073,7 @@ class AppState {
     }
 
     static func withMockData() -> AppState {
-        let state = AppState()
+        let state = AppState(skipPersistence: true)
 
         let root1Id = UUID()
         let sub1Id = UUID()
