@@ -902,8 +902,14 @@ class AppState {
               let saved = try? JSONDecoder().decode(SavedState.self, from: data) else {
             return
         }
-        projects = saved.projects.map { $0.toProject() }
-        selectedProjectId = saved.selectedProjectId
+        projects = saved.projects.map { $0.toProject() }.filter {
+            FileManager.default.fileExists(atPath: $0.path.path)
+        }
+        if let id = saved.selectedProjectId, projects.contains(where: { $0.id == id }) {
+            selectedProjectId = id
+        } else {
+            selectedProjectId = projects.first?.id
+        }
         isSidebarCollapsed = saved.isSidebarCollapsed
         officePanelHeight = saved.officePanelHeight
         permissionMode = saved.permissionMode ?? .supervised

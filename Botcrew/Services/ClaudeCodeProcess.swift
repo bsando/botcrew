@@ -159,6 +159,13 @@ class ClaudeCodeProcess: Identifiable {
             }
         }
 
+        // Validate project directory exists before launching
+        if !FileManager.default.fileExists(atPath: projectPath.path) {
+            addEntry(.init(kind: .error("Project directory not found: \(projectPath.path)")))
+            flushEntries()
+            return
+        }
+
         do {
             try proc.run()
             isRunning = true
