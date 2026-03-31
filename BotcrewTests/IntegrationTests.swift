@@ -120,12 +120,12 @@ final class IntegrationTests: XCTestCase {
         let state = AppState.withMockData()
         let project1 = state.projects[0]
 
-        // Initially no agent selected
-        XCTAssertNil(state.selectedAgentId)
-        XCTAssertNil(state.activeClusterId)
-
-        // Click first root agent tab
+        // Mock data pre-selects the first root agent
         let root1 = state.rootAgents[0]
+        XCTAssertEqual(state.selectedAgentId, root1.id)
+        XCTAssertEqual(state.activeClusterId, root1.id)
+
+        // Re-select same agent
         state.selectAgent(root1.id)
         XCTAssertEqual(state.selectedAgentId, root1.id)
         XCTAssertEqual(state.activeClusterId, root1.id)

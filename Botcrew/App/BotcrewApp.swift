@@ -20,7 +20,7 @@ struct BotcrewApp: App {
                 .background(.ultraThinMaterial)
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 900, height: 640)
+        .defaultSize(width: 1100, height: 700)
         .commands {
             BotcrewCommands(appState: appState)
 

@@ -35,109 +35,84 @@ final class BotcrewUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(frame.height, 640)
     }
 
-    // MARK: - Sidebar
+    // MARK: - Agent Tree (replaces Sidebar)
 
-    func testSidebarShowsProjects() throws {
-        // Mock data has 3 projects: botcrew, api-server, docs-site
-        let sidebar = app.staticTexts["botcrew"]
-        XCTAssertTrue(sidebar.waitForExistence(timeout: 5), "Should show 'botcrew' project")
+    func testAgentTreeShowsProjects() throws {
+        let project = app.staticTexts["botcrew"]
+        XCTAssertTrue(project.waitForExistence(timeout: 5), "Should show 'botcrew' project")
     }
 
-    func testSidebarShowsApiServerProject() throws {
+    func testAgentTreeShowsApiServerProject() throws {
         let text = app.staticTexts["api-server"]
         XCTAssertTrue(text.waitForExistence(timeout: 5), "Should show 'api-server' project")
     }
 
-    func testSidebarShowsDocsSiteProject() throws {
+    func testAgentTreeShowsDocsSiteProject() throws {
         let text = app.staticTexts["docs-site"]
         XCTAssertTrue(text.waitForExistence(timeout: 5), "Should show 'docs-site' project")
     }
 
-    func testProjectsHeaderExists() throws {
-        let header = app.staticTexts["PROJECTS"]
-        XCTAssertTrue(header.waitForExistence(timeout: 5), "Should show PROJECTS header")
+    func testAgentsHeaderExists() throws {
+        let header = app.staticTexts["AGENTS"]
+        XCTAssertTrue(header.waitForExistence(timeout: 5), "Should show AGENTS header")
     }
 
     func testClickProjectSwitchesSelection() throws {
         let apiServer = app.staticTexts["api-server"]
         XCTAssertTrue(apiServer.waitForExistence(timeout: 5))
         apiServer.click()
-        // After clicking api-server (no agents), should show empty agent state
         let emptyText = app.staticTexts["No active sessions"]
         XCTAssertTrue(emptyText.waitForExistence(timeout: 3), "Should show empty agent state")
     }
 
-    // MARK: - Tab Bar
+    // MARK: - Agent Tree Hierarchy
 
-    func testTabBarShowsRootAgents() throws {
-        // Agent names may be inside buttons or other containers — search descendants
-        let orchestrator = app.descendants(matching: .any).matching(
-            NSPredicate(format: "label == 'orchestrator'")
-        ).firstMatch
-        XCTAssertTrue(orchestrator.waitForExistence(timeout: 5), "Should show orchestrator tab")
+    func testAgentTreeShowsOrchestrator() throws {
+        let orchestrator = app.staticTexts["orchestrator"]
+        XCTAssertTrue(orchestrator.waitForExistence(timeout: 5), "Should show orchestrator agent in tree")
     }
 
-    func testTabBarShowsUiBuilder() throws {
-        let uiBuilder = app.descendants(matching: .any).matching(
-            NSPredicate(format: "label == 'ui-builder'")
-        ).firstMatch
-        XCTAssertTrue(uiBuilder.waitForExistence(timeout: 5), "Should show ui-builder tab")
+    func testAgentTreeShowsSubAgents() throws {
+        let writer = app.staticTexts["writer-1"]
+        XCTAssertTrue(writer.waitForExistence(timeout: 5), "Should show writer-1 sub-agent in tree")
     }
 
-    // MARK: - Office Panel
+    // MARK: - File Tree
 
-    func testOfficeLabelExists() throws {
-        let officeLabel = app.staticTexts["OFFICE"]
-        XCTAssertTrue(officeLabel.waitForExistence(timeout: 5), "Should show OFFICE label in panel bar")
+    func testFilesHeaderExists() throws {
+        let header = app.staticTexts["FILES"]
+        XCTAssertTrue(header.waitForExistence(timeout: 5), "Should show FILES header")
     }
 
     // MARK: - Feed
 
-    func testActivityTerminalToggleExists() throws {
-        // Mock data selects "botcrew" project with agents, so toggle should be visible immediately
-        let activityButton = app.buttons["Activity"]
-        XCTAssertTrue(activityButton.waitForExistence(timeout: 5), "Should show Activity toggle")
-        let terminalButton = app.buttons["Terminal"]
-        XCTAssertTrue(terminalButton.exists, "Should show Terminal toggle")
+    func testFeedModePickerExists() throws {
+        // The segmented picker contains "Activity", "Terminal", "All" segments
+        let activity = app.radioButtons["Activity"]
+        XCTAssertTrue(activity.waitForExistence(timeout: 5), "Should show Activity segment in picker")
     }
 
-    func testTerminalToggleSwitchesView() throws {
-        let terminalButton = app.buttons["Terminal"]
-        if terminalButton.waitForExistence(timeout: 5) {
-            terminalButton.click()
-            // Terminal view should show — Activity button should still be visible
-            let activityButton = app.buttons["Activity"]
-            XCTAssertTrue(activityButton.exists, "Activity button should still be visible")
+    func testTerminalSegmentExists() throws {
+        let terminal = app.radioButtons["Terminal"]
+        XCTAssertTrue(terminal.waitForExistence(timeout: 5), "Should show Terminal segment")
+    }
+
+    func testTerminalSegmentSwitchesView() throws {
+        let terminal = app.radioButtons["Terminal"]
+        if terminal.waitForExistence(timeout: 5) {
+            terminal.click()
+            let activity = app.radioButtons["Activity"]
+            XCTAssertTrue(activity.exists, "Activity segment should still be visible")
         }
     }
 
     // MARK: - Empty States
 
     func testEmptyProjectStateAfterRemovingAll() throws {
-        // Verify the empty agent state works when selecting a project with no agents
         let apiServer = app.staticTexts["api-server"]
         XCTAssertTrue(apiServer.waitForExistence(timeout: 5))
         apiServer.click()
         let emptyText = app.staticTexts["No active sessions"]
         XCTAssertTrue(emptyText.waitForExistence(timeout: 3))
-    }
-
-    // MARK: - Sidebar Collapse
-
-    func testSidebarCollapseButton() throws {
-        // The sidebar collapse button uses SF Symbol "sidebar.left"
-        let collapseButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'sidebar'")).firstMatch
-        if collapseButton.waitForExistence(timeout: 5) {
-            collapseButton.click()
-            // After collapse, the PROJECTS text should disappear
-            let projects = app.staticTexts["PROJECTS"]
-            // Give animation time
-            sleep(1)
-            // Re-expand
-            let expandButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'sidebar'")).firstMatch
-            if expandButton.exists {
-                expandButton.click()
-            }
-        }
     }
 }

@@ -17,6 +17,39 @@ class AppState {
     var officePanelHeight: CGFloat = 148 // snap: 26 (collapsed), 148 (ambient), 270 (expanded)
     static let zoomStep: CGFloat = 80 // pixels per step
 
+    // MARK: - File Activity Tracking
+    var fileTrackers: [UUID: FileActivityTracker] = [:]  // projectId → tracker
+
+    /// Get or create the file tracker for a project
+    func fileTracker(for projectId: UUID) -> FileActivityTracker {
+        if let existing = fileTrackers[projectId] { return existing }
+        let tracker = FileActivityTracker()
+        fileTrackers[projectId] = tracker
+        return tracker
+    }
+
+    /// File tracker for the currently selected project
+    var selectedFileTracker: FileActivityTracker? {
+        guard let id = selectedProjectId else { return nil }
+        return fileTrackers[id]
+    }
+
+    // MARK: - Cross-Agent Feed Mode
+    var showAllAgentsFeed = false
+
+    /// Events across all agents in the selected project (for cross-agent mode)
+    var eventsForAllAgents: [ActivityEvent] {
+        guard let project = selectedProject else { return [] }
+        return project.events.sorted { $0.timestamp > $1.timestamp }
+    }
+
+    // MARK: - Panel Visibility
+    var showAgentTree = true
+    var showFileTree = true
+
+    // MARK: - Office Panel Easter Egg
+    var showOfficePanel = false
+
     init(skipPersistence: Bool = false) {
         if !skipPersistence {
             loadState()
@@ -41,8 +74,8 @@ class AppState {
         let newFrame = NSRect(
             x: (screen.visibleFrame.width - 900) / 2 + screen.visibleFrame.origin.x,
             y: (screen.visibleFrame.height - 640) / 2 + screen.visibleFrame.origin.y,
-            width: 900,
-            height: 640
+            width: 1100,
+            height: 700
         )
         window.setFrame(newFrame, display: true, animate: true)
     }
@@ -52,12 +85,12 @@ class AppState {
         let screen = window.screen ?? NSScreen.main ?? NSScreen.screens[0]
         let maxFrame = screen.visibleFrame
 
-        let aspectRatio: CGFloat = 900.0 / 640.0
+        let aspectRatio: CGFloat = 1100.0 / 700.0
         let deltaH = delta / aspectRatio
 
         var newFrame = window.frame
-        newFrame.size.width = max(900, min(maxFrame.width, newFrame.size.width + delta))
-        newFrame.size.height = max(640, min(maxFrame.height, newFrame.size.height + deltaH))
+        newFrame.size.width = max(1100, min(maxFrame.width, newFrame.size.width + delta))
+        newFrame.size.height = max(700, min(maxFrame.height, newFrame.size.height + deltaH))
         // Keep centered by adjusting origin
         newFrame.origin.x -= (newFrame.size.width - window.frame.size.width) / 2
         newFrame.origin.y -= (newFrame.size.height - window.frame.size.height) / 2
@@ -750,6 +783,17 @@ class AppState {
             activityEvent.command = toolContent.command
             projects[idx].events.append(activityEvent)
 
+            // Record file touch for the file tree
+            if let fp = filePath,
+               let agent = projects[idx].agents.first(where: { $0.id == agentId }) {
+                let action: FileTouch.FileAction = (eventType == .write) ? .write : .read
+                fileTracker(for: projectId).recordTouch(
+                    filePath: fp, agentId: agentId,
+                    agentName: agent.name, agentColor: agent.bodyColor,
+                    action: action
+                )
+            }
+
             // Reset idle timer for this agent
             resetIdleTimer(agentId: agentId, projectIdx: idx)
         }
@@ -1175,6 +1219,38 @@ class AppState {
 
         state.projects = [project1, project2, project3]
         state.selectedProjectId = project1.id
+        state.selectedAgentId = root1Id
+        state.activeClusterId = root1Id
+
+        // Mock file activity for the file tree
+        let tracker = state.fileTracker(for: project1.id)
+        let mockFiles: [(String, UUID, String, Color, FileTouch.FileAction, TimeInterval)] = [
+            ("Botcrew/App/AppState.swift", root1Id, "orchestrator", Color(hex: 0xc0a8ff), .write, -3),
+            ("Botcrew/App/ContentView.swift", sub1Id, "writer-1", Color(hex: 0x80e8a0), .read, -8),
+            ("Botcrew/Views/Sidebar/SidebarView.swift", sub1Id, "writer-1", Color(hex: 0x80e8a0), .write, -5),
+            ("Botcrew/Views/Sidebar/TokenCard.swift", sub2Id, "test-runner", Color(hex: 0xffd080), .read, -20),
+            ("Botcrew/Views/Feed/ActivityFeedView.swift", sub1Id, "writer-1", Color(hex: 0x80e8a0), .write, -60),
+            ("Botcrew/Services/AgentStateParser.swift", root1Id, "orchestrator", Color(hex: 0xc0a8ff), .read, -12),
+            ("Botcrew/Models/Project.swift", root1Id, "orchestrator", Color(hex: 0xc0a8ff), .write, -120),
+            ("BotcrewTests/AppStateTests.swift", sub2Id, "test-runner", Color(hex: 0xffd080), .write, -5),
+            ("Botcrew/App/Theme.swift", sub3Id, "style-fixer", Color(hex: 0x80c8ff), .read, -15),
+            ("Botcrew/Views/TabBar/TabBarView.swift", root2Id, "ui-builder", Color(hex: 0xffb090), .write, -25),
+            // Conflict: two agents wrote the same file
+            ("Botcrew/Views/Sidebar/SidebarView.swift", sub4Id, "component-gen", Color(hex: 0x80e8a0), .write, -2),
+        ]
+        for (path, agentId, name, color, action, offset) in mockFiles {
+            tracker.recordTouch(filePath: path, agentId: agentId, agentName: name, agentColor: color, action: action)
+            // Adjust timestamp
+            if let idx = tracker.touches.firstIndex(where: { $0.filePath == path && $0.agentId == agentId }) {
+                let adjusted = FileTouch(
+                    id: tracker.touches[idx].id,
+                    filePath: path, agentId: agentId, agentName: name, agentColor: color,
+                    timestamp: now.addingTimeInterval(offset), action: action
+                )
+                tracker.touches[idx] = adjusted
+            }
+        }
+
         return state
     }
 }

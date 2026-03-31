@@ -26,11 +26,18 @@ struct ActivityFeedView: View {
 
     @ViewBuilder
     private var feedContent: some View {
-        let events = appState.eventsForSelectedAgent
+        let events = appState.showAllAgentsFeed
+            ? appState.eventsForAllAgents
+            : appState.eventsForSelectedAgent
+
         if events.isEmpty {
             VStack(spacing: 8) {
                 Spacer()
-                if appState.selectedAgentId == nil {
+                if appState.showAllAgentsFeed {
+                    Text("No activity in this project yet")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.textMuted(colorScheme))
+                } else if appState.selectedAgentId == nil {
                     Text("Select an agent to view activity")
                         .font(.system(size: 13))
                         .foregroundStyle(Theme.textMuted(colorScheme))
@@ -46,7 +53,12 @@ struct ActivityFeedView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(events) { event in
-                        ToolCardView(event: event)
+                        if appState.showAllAgentsFeed {
+                            // In cross-agent mode, show agent badge on each event
+                            CrossAgentToolCard(event: event)
+                        } else {
+                            ToolCardView(event: event)
+                        }
 
                         Divider()
                             .padding(.leading, 40)
@@ -55,6 +67,42 @@ struct ActivityFeedView: View {
                 }
                 .padding(.vertical, 4)
             }
+        }
+    }
+}
+
+// MARK: - Cross-Agent Tool Card (wraps ToolCardView with agent badge)
+
+struct CrossAgentToolCard: View {
+    let event: ActivityEvent
+    @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var agent: Agent? {
+        appState.selectedProject?.agents.first { $0.id == event.agentId }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Agent badge
+            if let agent = agent {
+                HStack(spacing: 4) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(agent.bodyColor)
+                        .frame(width: 6, height: 6)
+                    Text(agent.name)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(agent.bodyColor.opacity(0.8))
+                }
+                .padding(.leading, 12)
+                .padding(.top, 4)
+                .onTapGesture {
+                    appState.selectAgent(agent.id)
+                    appState.showAllAgentsFeed = false
+                }
+            }
+
+            ToolCardView(event: event)
         }
     }
 }

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Botcrew — Mission Control Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    background: #1e1e1e;
+    color: rgba(255,255,255,0.85);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Titlebar */
+  .titlebar {
+    height: 36px;
+    background: rgba(40,40,40,0.95);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    -webkit-app-region: drag;
+  }
+  .traffic-lights {
+    display: flex;
+    gap: 8px;
+    margin-right: 16px;
+  }
+  .traffic-lights span {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block;
+  }
+  .tl-red { background: #FF5F57; }
+  .tl-yellow { background: #FEBC2E; }
+  .tl-green { background: #28C840; }
+  .titlebar-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.55);
+    flex: 1;
+    text-align: center;
+    margin-right: 68px;
+  }
+
+  /* Main layout */
+  .main {
+    display: flex;
+    height: calc(100vh - 36px - 48px);
+  }
+
+  /* Panel shared */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-header {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.4);
+    padding: 12px 16px 8px;
+  }
+  .divider-v {
+    width: 1px;
+    background: rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  }
+
+  /* Agent Tree */
+  .agent-tree {
+    width: 220px;
+    background: rgba(30,30,30,0.7);
+    backdrop-filter: blur(20px);
+    flex-shrink: 0;
+  }
+  .agent-tree-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px;
+  }
+  .project-node {
+    padding: 6px 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .project-node .chevron { font-size: 10px; color: rgba(255,255,255,0.3); }
+  .agent-node {
+    padding: 5px 8px 5px 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .agent-node:hover {
+    background: rgba(255,255,255,0.04);
+  }
+  .agent-node.selected {
+    background: rgba(10,132,255,0.15);
+    border-color: rgba(10,132,255,0.3);
+  }
+  .agent-node.sub {
+    padding-left: 36px;
+    font-size: 11px;
+  }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-typing { background: #28C840; }
+  .dot-reading { background: #28C840; }
+  .dot-waiting { background: #FEBC2E; }
+  .dot-idle { background: #888780; }
+  .dot-error { background: #FF5F57; animation: pulse-dot 1.5s ease-in-out infinite; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,95,87,0.4); }
+    50% { opacity: 0.7; box-shadow: 0 0 6px 2px rgba(255,95,87,0.3); }
+  }
+  .agent-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agent-status-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    white-space: nowrap;
+  }
+  .tree-line {
+    border-left: 1px solid rgba(255,255,255,0.08);
+    margin-left: 13px;
+  }
+
+  /* Metrics footer */
+  .metrics-bar {
+    padding: 10px 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 11px;
+  }
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .metric-label { color: rgba(255,255,255,0.4); }
+  .metric-value { color: rgba(255,255,255,0.7); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .metric-value.green { color: #28C840; }
+  .rate-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .rate-bar-fill {
+    height: 100%;
+    width: 74%;
+    background: linear-gradient(90deg, #28C840, #FEBC2E);
+    border-radius: 2px;
+  }
+
+  /* Activity Feed */
+  .feed {
+    flex: 1;
+    min-width: 300px;
+    background: rgba(30,30,30,0.5);
+    display: flex;
+    flex-direction: column;
+  }
+  .breadcrumb {
+    padding: 10px 16px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .breadcrumb a {
+    color: rgba(10,132,255,0.8);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb .sep { color: rgba(255,255,255,0.2); }
+  .feed-toggle {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+  }
+  .toggle-btn {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+  }
+  .toggle-btn.active {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+    border-color: rgba(255,255,255,0.15);
+  }
+  .feed-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+  }
+  .tool-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .tool-card-header {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .tool-icon {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .icon-edit { background: rgba(128,232,160,0.15); color: #80e8a0; }
+  .icon-read { background: rgba(128,200,255,0.15); color: #80c8ff; }
+  .icon-bash { background: rgba(255,208,128,0.15); color: #ffd080; }
+  .icon-agent { background: rgba(192,168,255,0.15); color: #c0a8ff; }
+  .icon-think { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
+  .tool-card-file {
+    color: rgba(255,255,255,0.6);
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    flex: 1;
+  }
+  .tool-card-time {
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    font-variant-numeric: tabular-nums;
+  }
+  .tool-card-body {
+    padding: 0 12px 10px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .diff-add { color: #80e8a0; }
+  .diff-del { color: #ff6b6b; }
+  .diff-context { color: rgba(255,255,255,0.3); }
+  .bash-output {
+    color: rgba(255,255,255,0.5);
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 11px;
+  }
+  .bash-success { color: #28C840; font-weight: 600; }
+  .thinking-text {
+    color: rgba(255,255,255,0.35);
+    font-style: italic;
+    font-size: 12px;
+    font-family: -apple-system, sans-serif;
+  }
+
+  /* File Tree */
+  .file-tree {
+    width: 280px;
+    background: rgba(30,30,30,0.6);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .file-tree-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px;
+  }
+  .dir-node {
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .dir-node .chevron { font-size: 10px; color: rgba(255,255,255,0.25); }
+  .dir-icon { font-size: 12px; }
+  .file-node {
+    padding: 4px 8px 4px 24px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .file-node:hover { background: rgba(255,255,255,0.04); }
+  .file-node.depth-2 { padding-left: 40px; }
+  .file-node.depth-3 { padding-left: 56px; }
+  .file-name {
+    font-family: "SF Mono", Menlo, monospace;
+    color: rgba(255,255,255,0.7);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .file-action { font-size: 11px; }
+  .file-agent {
+    color: rgba(255,255,255,0.35);
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file-time {
+    color: rgba(255,255,255,0.2);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Active glow for recently touched files */
+  .file-node.active-now {
+    background: rgba(128,232,160,0.06);
+  }
+  .file-node.active-now .file-name {
+    color: #80e8a0;
+  }
+  .file-node.active-recent .file-name {
+    color: rgba(255,255,255,0.8);
+  }
+  .file-node.read-now {
+    background: rgba(128,200,255,0.04);
+  }
+  .file-node.read-now .file-name {
+    color: #80c8ff;
+  }
+
+  /* Conflict warning */
+  .conflict-section {
+    border-top: 1px solid rgba(255,95,87,0.15);
+    padding: 8px 12px;
+    margin-top: auto;
+  }
+  .conflict-header {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255,95,87,0.7);
+    margin-bottom: 6px;
+  }
+  .conflict-item {
+    font-size: 11px;
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .conflict-icon { color: #FF5F57; font-size: 12px; }
+  .conflict-file {
+    font-family: "SF Mono", Menlo, monospace;
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
+  }
+  .conflict-detail {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* Prompt bar */
+  .prompt-bar {
+    height: 48px;
+    background: rgba(40,40,40,0.9);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .permission-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(255,95,87,0.15);
+    color: #FF5F57;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .prompt-input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    outline: none;
+    font-family: -apple-system, sans-serif;
+  }
+  .send-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: rgba(10,132,255,0.8);
+    border: none;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Color coding for agents */
+  .color-orch { color: #c0a8ff; }
+  .color-agent1 { color: #80e8a0; }
+  .color-agent2 { color: #80c8ff; }
+  .color-agent3 { color: #ffd080; }
+  .color-agent4 { color: #ffb090; }
+
+  .dot-swatch {
+    width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* Subtle animations for "live" feel */
+  @keyframes fade-glow {
+    0% { opacity: 1; }
+    100% { opacity: 0.6; }
+  }
+  .file-node.active-now .file-action {
+    animation: fade-glow 1s ease-in-out infinite alternate;
+  }
+</style>
+</head>
+<body>
+
+<!-- Titlebar -->
+<div class="titlebar">
+  <div class="traffic-lights">
+    <span class="tl-red"></span>
+    <span class="tl-yellow"></span>
+    <span class="tl-green"></span>
+  </div>
+  <div class="titlebar-title">Botcrew</div>
+</div>
+
+<!-- Main three-panel layout -->
+<div class="main">
+
+  <!-- Panel 1: Agent Tree -->
+  <div class="panel agent-tree">
+    <div class="panel-header">Agents</div>
+    <div class="agent-tree-scroll">
+      <div class="project-node">
+        <span class="chevron">&#9660;</span>
+        botcrew
+      </div>
+      <div class="tree-line" style="padding-bottom: 2px;">
+        <div class="agent-node selected">
+          <span class="dot-swatch" style="background: #c0a8ff;"></span>
+          <span class="status-dot dot-typing"></span>
+          <span class="agent-name color-orch">orchestrator</span>
+          <span class="agent-status-label">typing</span>
+        </div>
+        <div class="agent-node sub">
+          <span class="dot-swatch" style="background: #80e8a0;"></span>
+          <span class="status-dot dot-reading"></span>
+          <span class="agent-name color-agent1">agent-1</span>
+          <span class="agent-status-label">reading</span>
+        </div>
+        <div class="agent-node sub">
+          <span class="dot-swatch" style="background: #80c8ff;"></span>
+          <span class="status-dot dot-typing"></span>
+          <span class="agent-name color-agent2">agent-2</span>
+          <span class="agent-status-label">typing</span>
+        </div>
+        <div class="agent-node sub">
+          <span class="dot-swatch" style="background: #ffd080;"></span>
+          <span class="status-dot dot-idle"></span>
+          <span class="agent-name color-agent3">agent-3</span>
+          <span class="agent-status-label">idle</span>
+        </div>
+        <div class="agent-node sub">
+          <span class="dot-swatch" style="background: #ffb090;"></span>
+          <span class="status-dot dot-waiting"></span>
+          <span class="agent-name color-agent4">agent-4</span>
+          <span class="agent-status-label">waiting</span>
+        </div>
+      </div>
+
+      <div style="height: 8px;"></div>
+
+      <div class="project-node">
+        <span class="chevron">&#9654;</span>
+        <span style="color: rgba(255,255,255,0.4);">other-repo</span>
+        <span class="status-dot dot-idle" style="margin-left: auto;"></span>
+      </div>
+
+      <div style="height: 8px;"></div>
+
+      <div class="project-node">
+        <span class="chevron">&#9654;</span>
+        <span style="color: rgba(255,255,255,0.4);">api-server</span>
+        <span class="status-dot dot-error" style="margin-left: auto;"></span>
+      </div>
+    </div>
+
+    <!-- Metrics footer -->
+    <div class="metrics-bar">
+      <div class="metric-row">
+        <span class="metric-label">Active</span>
+        <span class="metric-value green">4 agents</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Today</span>
+        <span class="metric-value">$1.24</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Rate limit</span>
+        <span class="metric-value">74%</span>
+      </div>
+      <div class="rate-bar-bg"><div class="rate-bar-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="divider-v"></div>
+
+  <!-- Panel 2: Activity Feed -->
+  <div class="panel feed">
+    <div class="breadcrumb">
+      <a>botcrew</a>
+      <span class="sep">/</span>
+      <a style="color: #c0a8ff;">orchestrator</a>
+      <span style="margin-left: 6px;"><span class="status-dot dot-typing" style="display: inline-block; vertical-align: middle;"></span></span>
+      <div class="feed-toggle">
+        <button class="toggle-btn active">Activity</button>
+        <button class="toggle-btn">Terminal</button>
+        <button class="toggle-btn">All agents</button>
+      </div>
+    </div>
+
+    <div class="feed-scroll">
+      <!-- Thinking -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon icon-think">...</div>
+          <span class="thinking-text">Planning the sidebar refactor approach...</span>
+          <span class="tool-card-time">just now</span>
+        </div>
+      </div>
+
+      <!-- Edit -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon icon-edit">&#9998;</div>
+          <span class="tool-card-file">AppState.swift<span style="color: rgba(255,255,255,0.25);"> :142</span></span>
+          <span class="tool-card-time">12:04:32</span>
+        </div>
+        <div class="tool-card-body">
+          <div class="diff-context">  var projects: [Project] = []</div>
+          <div class="diff-add">+ func resetSidebar() {</div>
+          <div class="diff-add">+     selectedProjectId = nil</div>
+          <div class="diff-add">+     projects.removeAll()</div>
+          <div class="diff-add">+ }</div>
+        </div>
+      </div>
+
+      <!-- Bash -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon icon-bash">&#9654;</div>
+          <span class="tool-card-file">xcodebuild -scheme Botcrew ...</span>
+          <span class="tool-card-time">12:04:28</span>
+        </div>
+        <div class="tool-card-body">
+          <div class="bash-output">** BUILD SUCCEEDED **</div>
+          <div class="bash-output" style="color: rgba(255,255,255,0.25);">2.3s, 0 warnings</div>
+        </div>
+      </div>
+
+      <!-- Agent spawn -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon icon-agent">&#11044;</div>
+          <span style="font-size: 12px;">Spawned <span class="color-agent2" style="font-weight: 500;">agent-2</span></span>
+          <span class="tool-card-time">12:04:15</span>
+        </div>
+        <div class="tool-card-body">
+          <div class="thinking-text">"Fix sidebar collapse animation and update tests"</div>
+        </div>
+      </div>
+
+      <!-- Read -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon icon-read">&#128065;</div>
+          <span class="tool-card-file">ContentView.swift</span>
+          <span class="tool-card-time">12:04:10</span>
+        </div>
+        <div class="tool-card-body">
+          <div class="bash-output">248 lines read</div>
+        </div>
+      </div>
+
+      <!-- Another agent spawn -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon icon-agent">&#11044;</div>
+          <span style="font-size: 12px;">Spawned <span class="color-agent1" style="font-weight: 500;">agent-1</span></span>
+          <span class="tool-card-time">12:04:02</span>
+        </div>
+        <div class="tool-card-body">
+          <div class="thinking-text">"Refactor activity feed for cross-agent mode"</div>
+        </div>
+      </div>
+
+      <!-- Read -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon icon-read">&#128065;</div>
+          <span class="tool-card-file">SidebarView.swift</span>
+          <span class="tool-card-time">12:03:55</span>
+        </div>
+        <div class="tool-card-body">
+          <div class="bash-output">186 lines read</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider-v"></div>
+
+  <!-- Panel 3: File Tree -->
+  <div class="panel file-tree">
+    <div class="panel-header">Files</div>
+    <div class="file-tree-scroll">
+      <div class="dir-node">
+        <span class="chevron">&#9660;</span>
+        <span class="dir-icon">&#128193;</span>
+        Botcrew/
+      </div>
+
+      <!-- App/ -->
+      <div class="dir-node" style="padding-left: 24px;">
+        <span class="chevron">&#9660;</span>
+        <span class="dir-icon">&#128193;</span>
+        App/
+      </div>
+      <div class="file-node depth-2 active-now">
+        <span class="file-name">AppState.swift</span>
+        <div class="file-badge">
+          <span class="file-action">&#9998;</span>
+          <span class="file-agent color-orch">orch</span>
+          <span class="file-time">now</span>
+        </div>
+      </div>
+      <div class="file-node depth-2 read-now">
+        <span class="file-name">ContentView.swift</span>
+        <div class="file-badge">
+          <span class="file-action">&#128065;</span>
+          <span class="file-agent color-agent1">ag-1</span>
+          <span class="file-time">8s</span>
+        </div>
+      </div>
+
+      <!-- Views/ -->
+      <div class="dir-node" style="padding-left: 24px;">
+        <span class="chevron">&#9660;</span>
+        <span class="dir-icon">&#128193;</span>
+        Views/
+      </div>
+
+      <!-- Sidebar/ -->
+      <div class="dir-node" style="padding-left: 40px;">
+        <span class="chevron">&#9660;</span>
+        <span class="dir-icon">&#128193;</span>
+        Sidebar/
+      </div>
+      <div class="file-node depth-3 active-now">
+        <span class="file-name">SidebarView.swift</span>
+        <div class="file-badge">
+          <span class="file-action">&#9998;</span>
+          <span class="file-agent color-agent2">ag-2</span>
+          <span class="file-time">3s</span>
+        </div>
+      </div>
+      <div class="file-node depth-3 active-recent">
+        <span class="file-name">TokenCard.swift</span>
+        <div class="file-badge">
+          <span class="file-action">&#128065;</span>
+          <span class="file-agent color-agent2">ag-2</span>
+          <span class="file-time">20s</span>
+        </div>
+      </div>
+
+      <!-- Feed/ -->
+      <div class="dir-node" style="padding-left: 40px;">
+        <span class="chevron">&#9660;</span>
+        <span class="dir-icon">&#128193;</span>
+        Feed/
+      </div>
+      <div class="file-node depth-3 active-now">
+        <span class="file-name">ActivityFeedView.swift</span>
+        <div class="file-badge">
+          <span class="file-action">&#9998;</span>
+          <span class="file-agent color-agent1">ag-1</span>
+          <span class="file-time">1m</span>
+        </div>
+      </div>
+
+      <!-- Services/ -->
+      <div class="dir-node" style="padding-left: 24px;">
+        <span class="chevron">&#9660;</span>
+        <span class="dir-icon">&#128193;</span>
+        Services/
+      </div>
+      <div class="file-node depth-2">
+        <span class="file-name">AgentStateParser.swift</span>
+        <div class="file-badge">
+          <span class="file-action">&#128065;</span>
+          <span class="file-agent color-agent1">ag-1</span>
+          <span class="file-time">12s</span>
+        </div>
+      </div>
+
+      <!-- Models/ -->
+      <div class="dir-node" style="padding-left: 24px;">
+        <span class="chevron">&#9660;</span>
+        <span class="dir-icon">&#128193;</span>
+        Models/
+      </div>
+      <div class="file-node depth-2">
+        <span class="file-name">Project.swift</span>
+        <div class="file-badge">
+          <span class="file-action">&#9998;</span>
+          <span class="file-agent color-orch">orch</span>
+          <span class="file-time">2m</span>
+        </div>
+      </div>
+
+      <!-- Tests/ -->
+      <div class="dir-node" style="padding-left: 24px;">
+        <span class="chevron">&#9660;</span>
+        <span class="dir-icon">&#128193;</span>
+        Tests/
+      </div>
+      <div class="file-node depth-2 active-now">
+        <span class="file-name">AppStateTests.swift</span>
+        <div class="file-badge">
+          <span class="file-action">&#9998;</span>
+          <span class="file-agent color-agent3">ag-3</span>
+          <span class="file-time">5s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conflict warning -->
+    <div class="conflict-section">
+      <div class="conflict-header">&#9888; Conflicts</div>
+      <div class="conflict-item">
+        <span class="conflict-file">SidebarView.swift</span>
+      </div>
+      <div style="font-size: 10px; color: rgba(255,255,255,0.3); padding-left: 0;">
+        <span class="color-agent2">agent-2</span> + <span class="color-agent4">agent-4</span> both editing
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Prompt bar -->
+<div class="prompt-bar">
+  <div class="permission-badge">&#9889; Auto</div>
+  <input class="prompt-input" type="text" placeholder="Ask Claude something... (type / for commands)" disabled>
+  <button class="send-btn">&#8593;</button>
+</div>
+
+</body>
+</html>
