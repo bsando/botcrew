@@ -8,55 +8,57 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HSplitView {
-            if !appState.isSidebarCollapsed {
-                SidebarView()
-                    .frame(width: 168)
-                    .background(Theme.sidebarBg(colorScheme))
-            } else {
-                CollapsedSidebarView()
-                    .frame(width: 44)
-                    .background(Theme.sidebarBg(colorScheme))
-            }
+        VStack(spacing: 0) {
+            MacFrameView()
 
-            VStack(spacing: 0) {
-                MacFrameView()
+            HSplitView {
+                // Panel 1: Agent Tree
+                if appState.showAgentTree {
+                    AgentTreeView()
+                        .frame(minWidth: 180, idealWidth: 220, maxWidth: 280)
+                        .background(Theme.sidebarBg(colorScheme))
+                }
 
-                if appState.selectedProject == nil {
-                    EmptyProjectView()
-                } else if appState.rootAgents.isEmpty {
-                    // No agents yet — show empty state or terminal output
-                    if appState.showTerminal, let projectId = appState.selectedProjectId,
-                       let proc = appState.processes[projectId], !proc.terminalOutput.isEmpty {
-                        // Slash command produced output — show terminal
+                // Panel 2: Activity Feed (center)
+                VStack(spacing: 0) {
+                    if appState.selectedProject == nil {
+                        EmptyProjectView()
+                    } else if appState.rootAgents.isEmpty {
+                        if appState.showTerminal, let projectId = appState.selectedProjectId,
+                           let proc = appState.processes[projectId], !proc.terminalOutput.isEmpty {
+                            ActivityFeedView()
+                                .frame(maxHeight: .infinity)
+                        } else {
+                            EmptyAgentView()
+                        }
+                    } else {
                         ActivityFeedView()
                             .frame(maxHeight: .infinity)
-                    } else {
-                        EmptyAgentView()
-                    }
-                    PromptInputBar()
-                } else {
-                    TabBarView()
-                        .frame(height: 38)
 
-                    Divider()
-                        .opacity(0.08)
-
-                    ActivityFeedView()
-                        .frame(maxHeight: .infinity)
-
-                    if let approval = appState.pendingApproval {
-                        ToolApprovalBanner(approval: approval)
+                        if let approval = appState.pendingApproval {
+                            ToolApprovalBanner(approval: approval)
+                        }
                     }
 
-                    PromptInputBar()
+                    // Office panel (easter egg — hidden by default)
+                    if appState.showOfficePanel {
+                        DragDividerView()
+                        OfficePanelView()
+                            .frame(height: appState.officePanelHeight)
+                    }
+                }
+                .frame(minWidth: 300)
 
-                    DragDividerView()
-
-                    OfficePanelView()
-                        .frame(height: appState.officePanelHeight)
+                // Panel 3: File Tree
+                if appState.showFileTree {
+                    FileTreeView()
+                        .frame(minWidth: 200, idealWidth: 260, maxWidth: 320)
+                        .background(Theme.contentBg(colorScheme))
                 }
             }
+
+            // Prompt bar spans full width below all panels
+            PromptInputBar()
         }
         .sheet(isPresented: Bindable(appState).showGitPanel) {
             GitPanelView()
@@ -94,48 +96,53 @@ struct BotcrewCommands: Commands {
                 appState.selectNextAgent()
             }
             .keyboardShortcut(.rightArrow, modifiers: .command)
-
-            Divider()
-
-            Button("Toggle Cluster") {
-                if let rootId = appState.activeClusterId ?? appState.rootAgents.first?.id {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        appState.toggleCluster(rootId)
-                    }
-                }
-            }
-            .keyboardShortcut(.return, modifiers: .command)
         }
 
         // View
         CommandMenu("Panels") {
-            Button("Toggle Sidebar") {
+            Button("Toggle Agent Tree") {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    appState.isSidebarCollapsed.toggle()
+                    appState.showAgentTree.toggle()
                 }
             }
-            .keyboardShortcut("\\", modifiers: .command)
+            .keyboardShortcut("1", modifiers: .command)
+
+            Button("Focus Feed") {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    appState.showAgentTree = false
+                    appState.showFileTree = false
+                }
+            }
+            .keyboardShortcut("2", modifiers: .command)
+
+            Button("Toggle File Tree") {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    appState.showFileTree.toggle()
+                }
+            }
+            .keyboardShortcut("3", modifiers: .command)
+
+            Button("Show All Panels") {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    appState.showAgentTree = true
+                    appState.showFileTree = true
+                }
+            }
+            .keyboardShortcut("0", modifiers: [.command, .shift])
+
+            Divider()
 
             Button("Toggle Terminal") {
                 appState.showTerminal.toggle()
             }
             .keyboardShortcut("t", modifiers: .command)
 
-            Divider()
-
-            Button("Expand Office Panel") {
+            Button("Toggle Office Panel") {
                 withAnimation(.easeOut(duration: 0.2)) {
-                    appState.officePanelSnapUp()
+                    appState.showOfficePanel.toggle()
                 }
             }
-            .keyboardShortcut(.upArrow, modifiers: [.command, .shift])
-
-            Button("Collapse Office Panel") {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    appState.officePanelSnapDown()
-                }
-            }
-            .keyboardShortcut(.downArrow, modifiers: [.command, .shift])
+            .keyboardShortcut("o", modifiers: [.command, .shift])
 
             Divider()
 
@@ -202,7 +209,6 @@ struct EmptyAgentView: View {
             Spacer()
 
             VStack(spacing: 20) {
-                // Icon
                 ZStack {
                     Circle()
                         .fill(Color(hex: 0x0A84FF).opacity(0.08))
@@ -212,7 +218,6 @@ struct EmptyAgentView: View {
                         .foregroundStyle(Color(hex: 0x0A84FF).opacity(0.6))
                 }
 
-                // Title + subtitle
                 VStack(spacing: 6) {
                     Text("No active sessions")
                         .font(.system(size: 17, weight: .semibold))
@@ -229,7 +234,6 @@ struct EmptyAgentView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textTertiary(colorScheme))
 
-                // Quick action chips
                 HStack(spacing: 8) {
                     QuickActionChip(icon: "doc.text.magnifyingglass", label: "Review code") {
                         if let projectId = appState.selectedProjectId {

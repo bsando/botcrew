@@ -3,60 +3,102 @@
 
 import SwiftUI
 
+enum FeedMode: String, CaseIterable {
+    case activity, terminal, allAgents
+}
+
 struct FeedHeaderView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.colorScheme) private var colorScheme
 
+    private var feedMode: FeedMode {
+        if appState.showTerminal { return .terminal }
+        if appState.showAllAgentsFeed { return .allAgents }
+        return .activity
+    }
+
     var body: some View {
-        HStack(spacing: 10) {
-            if let agent = appState.selectedAgent {
-                // Color swatch
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(agent.bodyColor)
-                    .frame(width: 14, height: 14)
-
-                Text(agent.name)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Theme.textPrimary(colorScheme))
-
-                // Role label
-                if agent.parentId == nil {
-                    Text("root")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Theme.textSecondary(colorScheme))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(Theme.separator(colorScheme))
-                        )
-                }
-
-                // Status pill
-                StatusPill(status: agent.status)
-            } else {
-                Text("Select an agent")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.textMuted(colorScheme))
-            }
+        HStack(spacing: 8) {
+            // Breadcrumb: project > root > agent
+            breadcrumb
 
             Spacer()
 
-            // Activity / Terminal toggle
-            HStack(spacing: 0) {
-                ToggleButton(label: "Activity", isActive: !appState.showTerminal) {
-                    appState.showTerminal = false
+            // Feed mode picker (native segmented control)
+            Picker("Feed Mode", selection: Binding(
+                get: { feedMode },
+                set: { newMode in
+                    switch newMode {
+                    case .activity:
+                        appState.showTerminal = false
+                        appState.showAllAgentsFeed = false
+                    case .terminal:
+                        appState.showTerminal = true
+                        appState.showAllAgentsFeed = false
+                    case .allAgents:
+                        appState.showTerminal = false
+                        appState.showAllAgentsFeed = true
+                    }
                 }
-                ToggleButton(label: "Terminal", isActive: appState.showTerminal) {
-                    appState.showTerminal = true
-                }
+            )) {
+                Text("Activity").tag(FeedMode.activity)
+                Text("Terminal").tag(FeedMode.terminal)
+                Text("All").tag(FeedMode.allAgents)
             }
-            .background(Theme.cardBg(colorScheme))
-            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .pickerStyle(.segmented)
+            .frame(width: 180)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 12)
         .frame(height: 36)
         .background(Theme.contentBg(colorScheme))
+    }
+
+    @ViewBuilder
+    private var breadcrumb: some View {
+        HStack(spacing: 4) {
+            if let project = appState.selectedProject {
+                // Project name
+                Text(project.name)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(hex: 0x0A84FF).opacity(0.8))
+                    .onTapGesture {
+                        appState.selectedAgentId = nil
+                    }
+
+                if let agent = appState.selectedAgent {
+                    Text("/")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.textTertiary(colorScheme))
+
+                    // If sub-agent, show parent first
+                    if let parentId = agent.parentId,
+                       let parent = appState.selectedProject?.agents.first(where: { $0.id == parentId }) {
+                        Text(parent.name)
+                            .font(.system(size: 12))
+                            .foregroundStyle(parent.bodyColor.opacity(0.8))
+                            .onTapGesture {
+                                appState.selectAgent(parent.id)
+                            }
+
+                        Text("/")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.textTertiary(colorScheme))
+                    }
+
+                    // Current agent
+                    Text(agent.name)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(agent.bodyColor)
+
+                    // Status dot
+                    StatusPill(status: agent.status)
+                }
+            } else {
+                Text("No project selected")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textMuted(colorScheme))
+            }
+        }
     }
 }
 

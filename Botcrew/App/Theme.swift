@@ -91,7 +91,7 @@ enum Theme {
     }
 
     static func textTertiary(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? .white.opacity(0.25) : .black.opacity(0.25)
+        scheme == .dark ? .white.opacity(0.30) : .black.opacity(0.30)
     }
 
     static func textMuted(_ scheme: ColorScheme) -> Color {
