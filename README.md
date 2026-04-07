@@ -1,140 +1,96 @@
 # BotCrew
 
-A native macOS app (SwiftUI) for managing Claude Code multi-agent sessions. Pixel art office with animated sprites representing each agent. Feed-primary, ambient office panel below.
+A native macOS app for watching Claude Code multi-agent sessions in real time. See what every agent is doing, track costs, and manage sessions — all from a pixel art office where each sprite is a live agent.
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue)
-![Swift 5.10](https://img.shields.io/badge/Swift-5.10-orange)
-![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-green)
+![MIT License](https://img.shields.io/badge/license-MIT-green)
 
-## What it does
+## Install
 
-Botcrew solves three problems with Claude Code multi-agent workflows:
+Download the latest `.dmg` from [Releases](https://github.com/bsando/botcrew/releases), open it, and drag BotCrew to Applications.
 
-1. **No visibility** into what subagents are doing or their hierarchy
-2. **Context loss** when switching between repos/sessions
-3. **No cost tracking** across sessions
+> **Requires**: macOS 14 (Sonoma) or later and [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed.
 
-It reads Claude Code's JSONL transcript files (no modification to Claude Code needed) and presents a unified view: project sidebar, agent tabs, activity feed, and a pixel art office where each sprite = one agent.
+## How it works
+
+BotCrew reads Claude Code's JSONL transcript files. It doesn't modify Claude Code in any way — it's purely observational.
+
+1. **Add a project** — Click + in the sidebar, pick any directory where you use Claude Code
+2. **Send a prompt** — Type in the prompt bar at the bottom. BotCrew launches `claude` with stream-json output and shows everything in real time
+3. **Watch agents work** — Each agent gets a sprite in the pixel office and a tab in the tab bar. Subagents appear automatically when spawned
+4. **Track costs** — Token usage and cost estimates are tracked per-session with model-specific pricing (Sonnet/Opus/Haiku)
+
+That's it. Add your project, send a prompt, watch the sprites go.
+
+## What you see
+
+```
++----------+--------------------------------------+
+|          |  Tab bar (agents)                    |
+|          +--------------------------------------+
+| Sidebar  |  Activity feed                       |
+| Projects |  (tool calls, diffs, output)         |
+| + costs  +--------------------------------------+
+|          |  Pixel office (sprites = agents)      |
+|          +--------------------------------------+
+|          |  Prompt input bar                     |
++----------+--------------------------------------+
+```
+
+- **Sidebar** — Your projects with status dots, token counts, and cost tracking. Session history for resuming past sessions.
+- **Tab bar** — Root agents as large tabs, subagents tucked underneath. Click to switch. Clusters expand/collapse.
+- **Activity feed** — Structured tool cards showing file reads/writes with diffs, bash commands with output, and agent spawns. Toggle to raw terminal view with `Cmd+T`.
+- **Pixel office** — Animated blob sprites. Typing = hunched + fast bob. Waiting = arms wide. Error = X eyes + red flash. Click a sprite to select that agent's tab.
+- **Prompt bar** — Send prompts with permission mode picker (Auto / Supervised / Safe). Prompt templates for common workflows.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+Up/Down` | Switch projects |
+| `Cmd+Left/Right` | Switch agents |
+| `Cmd+\` | Toggle sidebar |
+| `Cmd+T` | Toggle terminal/feed |
+| `Cmd+G` | Git panel |
+| `Cmd+Shift+Up/Down` | Snap office panel (collapse/ambient/expanded) |
 
 ## Features
 
-- **Project sidebar** — Add/remove projects, status dots, token/cost tracking
-- **Agent tab bar** — Root + sub-agent clusters, expand/collapse, sprite thumbnails, inline renaming
-- **Structured activity feed** — Collapsible tool cards with diffs, code blocks, command output
-- **Pixel art office** — Animated blob sprites with typing/reading/waiting/idle/error states
-- **Prompt input** — Send prompts to Claude Code directly from the app
-- **Permission controls** — Auto/supervised/safe permission modes with tool approval UI
-- **Session history** — Browse and resume past Claude Code sessions
-- **Cost dashboard** — Daily cost chart, per-project breakdown, token tracking
-- **Git integration** — Status, diff viewer, and commit support (⌘G)
-- **Prompt templates** — Built-in and custom templates for common workflows
-- **Session restore** — Auto-detects recent sessions on relaunch, reconstructs agent hierarchy
-- **Sound notifications** — System sounds on session complete, error, and subagent spawn
-- **Light + dark mode** — Follows system theme with adaptive colors (office panel stays dark)
-- **State persistence** — Projects, settings, and cost history saved across launches
-- **Keyboard shortcuts** — Full keyboard navigation (⌘↑↓ projects, ⌘←→ agents, ⌘\ sidebar, ⌘T terminal)
+- **Real-time JSONL tailing** — DispatchSource file watching, no polling
+- **Agent hierarchy** — Automatically detects subagent spawns and builds the tree
+- **Cost tracking** — Model-specific pricing (Sonnet $3/$15, Opus $15/$75, Haiku $0.80/$4) with correct cache token rates
+- **Session resume** — Browse past sessions, resume with `--resume`
+- **Permission modes** — Auto (skip all), Supervised (approve each), Safe (read-only tools)
+- **Tool approval** — When Claude asks for permission, a banner lets you approve/deny
+- **Git integration** — Status, diffs, and commit from the app (`Cmd+G`)
+- **Prompt templates** — 6 built-in + custom templates with categories
+- **Sound notifications** — Glass/Basso/Pop for session complete, errors, spawns (toggleable)
+- **Light + dark mode** — Follows system theme; office panel always stays dark
+- **State persistence** — Everything saved across launches
 
-## Getting started
-
-### Prerequisites
-
-- macOS 14 (Sonoma) or later
-- Xcode 16+
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
-- [xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
-
-### Build & run
+## Build from source
 
 ```bash
-# Generate Xcode project
+# Prerequisites: Xcode 16+, xcodegen (brew install xcodegen)
+
+git clone https://github.com/bsando/botcrew.git
+cd botcrew
 xcodegen generate
-
-# Build (headless)
-xcodebuild -scheme Botcrew -destination 'platform=macOS' -configuration Debug build
-
-# Or open in Xcode and hit ⌘R
-open Botcrew.xcodeproj
+open Botcrew.xcodeproj   # Cmd+R to run
 ```
 
-### Run tests
-
+To build headless:
 ```bash
-xcodebuild test -scheme Botcrew -destination 'platform=macOS' -configuration Debug
+xcodebuild -scheme Botcrew -destination 'platform=macOS' build \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=""
 ```
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│  Titlebar (traffic lights)                      │
-├──────────┬──────────────────────────────────────┤
-│          │  Tab bar (root + sub-agent clusters)  │
-│ Sidebar  ├──────────────────────────────────────┤
-│ (168px)  │  Activity feed / Terminal view        │
-│          │  Tool approval banner                 │
-│ Projects ├──────────────────────────────────────┤
-│ + tokens │  Drag divider (snap: 0/148/270px)    │
-│ + cost   ├──────────────────────────────────────┤
-│          │  Pixel office panel                   │
-│          ├──────────────────────────────────────┤
-│          │  Prompt input bar                     │
-└──────────┴──────────────────────────────────────┘
-```
-
-### Key components
-
-| Layer | Purpose |
-|---|---|
-| `AppState` | `@Observable` central state, persistence, process management |
-| `ClaudeCodeProcess` | Foundation.Process wrapper, stream-JSON protocol |
-| `JSONLWatcher` | DispatchSource file watching on Claude Code transcripts |
-| `AgentStateParser` | JSONL event → agent state heuristics |
-| `SessionScanner` | Scans past JSONL sessions for history/resume |
-| `GitService` | Shell-out to git CLI for status/diff/commit |
-
-### How it works
-
-1. You add a project directory via the sidebar
-2. Send a prompt from the input bar — Botcrew spawns a `claude` process with `--output-format stream-json`
-3. JSONL transcript events drive sprite animations and the activity feed in real-time
-4. Subagent spawns are detected automatically and appear as new tabs/sprites
-5. Token usage and costs are tracked per-session
-
-## File structure
-
-```
-Botcrew/
-├── App/
-│   ├── BotcrewApp.swift          # Entry point, window, commands
-│   ├── AppState.swift            # Central state + persistence
-│   ├── ContentView.swift         # Main layout + keyboard shortcuts
-│   └── Theme.swift               # Adaptive color tokens (light/dark)
-├── Models/
-│   ├── Project.swift             # Project + SavedProject (Codable)
-│   ├── Agent.swift               # Agent model + status enum
-│   ├── ActivityEvent.swift       # Feed events with structured tool data
-│   ├── CostRecord.swift          # Per-session cost tracking
-│   ├── GitStatus.swift           # Git file changes + info
-│   ├── PromptTemplate.swift      # Built-in + custom templates
-│   ├── SessionInfo.swift         # Past session metadata
-│   └── ToolApproval.swift        # Permission denial handling
-├── Views/
-│   ├── Sidebar/                  # Project list, token card, cost dashboard, session history
-│   ├── TabBar/                   # Root/sub tabs with inline renaming
-│   ├── Feed/                     # Activity feed, tool cards, prompt bar, templates, approval banner
-│   ├── Office/                   # Pixel office canvas, sprites, drag divider
-│   └── Git/                      # Git panel (status, diff, commit)
-├── Services/
-│   ├── ClaudeCodeProcess.swift   # Process lifecycle + stream-JSON parsing
-│   ├── JSONLWatcher.swift        # DispatchSource transcript watching
-│   ├── AgentStateParser.swift    # Event parsing → agent state
-│   ├── SessionScanner.swift      # Past session scanning
-│   ├── GitService.swift          # Git CLI operations
-│   └── SoundService.swift        # System sound notifications
-└── Assets/
-    └── SpriteData.swift          # Pixel arrays (blob sprites)
+Run tests:
+```bash
+xcodebuild -scheme Botcrew -destination 'platform=macOS' test \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=""
 ```
 
 ## License
 
-Personal project by Brian Sanders.
+MIT
