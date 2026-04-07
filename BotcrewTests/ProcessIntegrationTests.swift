@@ -120,14 +120,19 @@ final class ProcessIntegrationTests: XCTestCase {
         let event = AgentStateParser.parseJSONLLine(line)!
         let usage = AgentStateParser.extractUsage(from: event)
         XCTAssertNotNil(usage)
-        XCTAssertEqual(usage?.input, 600) // 100 + 200 + 300
-        XCTAssertEqual(usage?.output, 50)
+        XCTAssertEqual(usage?.inputTokens, 100)
+        XCTAssertEqual(usage?.cacheCreationTokens, 200)
+        XCTAssertEqual(usage?.cacheReadTokens, 300)
+        XCTAssertEqual(usage?.totalTokens, 650) // 100 + 200 + 300 + 50
+        XCTAssertEqual(usage?.outputTokens, 50)
     }
 
     func testEstimateCost() {
-        let cost = AgentStateParser.estimateCost(inputTokens: 1_000_000, outputTokens: 100_000)
-        // $15/M input + $7.5/100k output = $15 + $7.5 = $22.5
-        XCTAssertEqual(cost, 22.5, accuracy: 0.01)
+        // Sonnet pricing (default): $3/M input, $15/M output
+        let usage = AgentStateParser.TokenUsage(inputTokens: 1_000_000, cacheCreationTokens: 0, cacheReadTokens: 0, outputTokens: 100_000)
+        let cost = AgentStateParser.estimateCost(usage: usage)
+        // $3 input + $1.5 output = $4.5
+        XCTAssertEqual(cost, 4.5, accuracy: 0.01)
     }
 
     // MARK: - ClaudeCodeProcess

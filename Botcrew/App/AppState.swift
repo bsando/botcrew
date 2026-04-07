@@ -811,12 +811,11 @@ class AppState {
             if soundEnabled { SoundService.play(.error) }
         }
 
-        // Update token counts
+        // Update token counts and cost estimate
         if let usage = AgentStateParser.extractUsage(from: event) {
-            projects[idx].tokenCount += usage.input + usage.output
-            projects[idx].estimatedCost = AgentStateParser.estimateCost(
-                inputTokens: projects[idx].tokenCount,
-                outputTokens: usage.output
+            projects[idx].tokenCount += usage.totalTokens
+            projects[idx].estimatedCost += AgentStateParser.estimateCost(
+                usage: usage, model: event.model
             )
         }
     }
@@ -904,12 +903,17 @@ class AppState {
 
     private static let saveFileName = "botcrew-state.json"
 
-    private static var saveFileURL: URL {
+    private static let saveFileURL: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let botcrewDir = appSupport.appendingPathComponent("Botcrew", isDirectory: true)
+        let botcrewDir = appSupport.appendingPathComponent("BotCrew", isDirectory: true)
+        // One-time migration from old "Botcrew" directory name
+        let oldDir = appSupport.appendingPathComponent("Botcrew", isDirectory: true)
+        if FileManager.default.fileExists(atPath: oldDir.path) && !FileManager.default.fileExists(atPath: botcrewDir.path) {
+            try? FileManager.default.moveItem(at: oldDir, to: botcrewDir)
+        }
         try? FileManager.default.createDirectory(at: botcrewDir, withIntermediateDirectories: true)
         return botcrewDir.appendingPathComponent(saveFileName)
-    }
+    }()
 
     struct SavedState: Codable {
         var projects: [SavedProject]
@@ -1033,7 +1037,7 @@ class AppState {
                 ))
             }
             if let usage = AgentStateParser.extractUsage(from: event) {
-                projects[idx].tokenCount += usage.input + usage.output
+                projects[idx].tokenCount += usage.totalTokens
             }
         }
 

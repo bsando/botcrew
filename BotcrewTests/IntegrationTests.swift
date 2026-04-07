@@ -89,8 +89,8 @@ final class IntegrationTests: XCTestCase {
         // Extract usage
         let usage = AgentStateParser.extractUsage(from: event)
         XCTAssertNotNil(usage)
-        XCTAssertEqual(usage?.input, 500)
-        XCTAssertEqual(usage?.output, 100)
+        XCTAssertEqual(usage?.inputTokens, 500)
+        XCTAssertEqual(usage?.outputTokens, 100)
 
         // Not an error
         XCTAssertFalse(AgentStateParser.containsError(event))
@@ -268,8 +268,9 @@ final class IntegrationTests: XCTestCase {
 
         let usage = AgentStateParser.extractUsage(from: event)
         XCTAssertNotNil(usage)
-        XCTAssertEqual(usage?.input, 3930 + 17890) // input + cache_read
-        XCTAssertEqual(usage?.output, 14)
+        XCTAssertEqual(usage?.inputTokens, 3930)
+        XCTAssertEqual(usage?.cacheReadTokens, 17890)
+        XCTAssertEqual(usage?.outputTokens, 14)
     }
 
     // MARK: - Tool Content Extraction

@@ -212,14 +212,32 @@ final class EdgeCaseTests: XCTestCase {
     // MARK: - Token/Cost Edge Cases
 
     func testZeroTokenEstimate() {
-        let cost = AgentStateParser.estimateCost(inputTokens: 0, outputTokens: 0)
+        let usage = AgentStateParser.TokenUsage(inputTokens: 0, cacheCreationTokens: 0, cacheReadTokens: 0, outputTokens: 0)
+        let cost = AgentStateParser.estimateCost(usage: usage)
         XCTAssertEqual(cost, 0.0)
     }
 
     func testLargeTokenCount() {
-        let cost = AgentStateParser.estimateCost(inputTokens: 10_000_000, outputTokens: 1_000_000)
+        // Sonnet pricing: $3/M input, $15/M output
+        let usage = AgentStateParser.TokenUsage(inputTokens: 10_000_000, cacheCreationTokens: 0, cacheReadTokens: 0, outputTokens: 1_000_000)
+        let cost = AgentStateParser.estimateCost(usage: usage)
+        // $30 input + $15 output = $45
+        XCTAssertEqual(cost, 45.0, accuracy: 0.01)
+    }
+
+    func testLargeTokenCountOpus() {
+        // Opus pricing: $15/M input, $75/M output
+        let usage = AgentStateParser.TokenUsage(inputTokens: 10_000_000, cacheCreationTokens: 0, cacheReadTokens: 0, outputTokens: 1_000_000)
+        let cost = AgentStateParser.estimateCost(usage: usage, model: "claude-opus-4-20250514")
         // $150 input + $75 output = $225
         XCTAssertEqual(cost, 225.0, accuracy: 0.01)
+    }
+
+    func testCacheReadDiscount() {
+        // Sonnet: cache read is $0.30/M vs $3/M for regular input (10x cheaper)
+        let usage = AgentStateParser.TokenUsage(inputTokens: 0, cacheCreationTokens: 0, cacheReadTokens: 1_000_000, outputTokens: 0)
+        let cost = AgentStateParser.estimateCost(usage: usage)
+        XCTAssertEqual(cost, 0.30, accuracy: 0.01)
     }
 
     func testUsageWithMissingFields() {
@@ -229,8 +247,8 @@ final class EdgeCaseTests: XCTestCase {
         let event = AgentStateParser.parseJSONLLine(line)!
         let usage = AgentStateParser.extractUsage(from: event)
         XCTAssertNotNil(usage)
-        XCTAssertEqual(usage?.input, 0)
-        XCTAssertEqual(usage?.output, 0)
+        XCTAssertEqual(usage?.inputTokens, 0)
+        XCTAssertEqual(usage?.outputTokens, 0)
     }
 
     func testUsageWithNoUsageField() {

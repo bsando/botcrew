@@ -1,5 +1,5 @@
 // BotcrewApp.swift
-// Botcrew
+// BotCrew
 
 import SwiftUI
 

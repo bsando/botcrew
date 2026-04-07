@@ -35,6 +35,11 @@ class ClaudeCodeProcess: Identifiable {
     private var stdoutPipe: Pipe?
     private var stderrPipe: Pipe?
     private let maxEntries = 500
+    private var staleTimer: Timer?
+
+    /// Seconds of no stdout/stderr before process is considered stale
+    private let staleTimeout: TimeInterval = 300 // 5 minutes
+    private var lastActivityDate = Date()
 
     // Throttled update internals
     private var _pendingEntries: [TerminalEntry] = []
@@ -124,6 +129,7 @@ class ClaudeCodeProcess: Identifiable {
             guard !data.isEmpty, let self = self else { return }
             if let text = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
+                    self.lastActivityDate = Date()
                     self.processStreamJSON(text)
                 }
             }
@@ -137,6 +143,7 @@ class ClaudeCodeProcess: Identifiable {
                 let lines = text.components(separatedBy: .newlines)
                     .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
                 DispatchQueue.main.async {
+                    self.lastActivityDate = Date()
                     for line in lines {
                         self.addEntry(.init(kind: .raw(line)))
                     }
@@ -146,6 +153,8 @@ class ClaudeCodeProcess: Identifiable {
 
         proc.terminationHandler = { [weak self] proc in
             DispatchQueue.main.async {
+                self?.staleTimer?.invalidate()
+                self?.staleTimer = nil
                 self?.finalizeAssistantText()
                 self?.isRunning = false
                 self?.isThinking = false
@@ -169,6 +178,8 @@ class ClaudeCodeProcess: Identifiable {
         do {
             try proc.run()
             isRunning = true
+            lastActivityDate = Date()
+            startStaleTimer()
             // Add user prompt entry
             addEntry(.init(kind: .userPrompt(prompt)))
             isThinking = true
@@ -178,10 +189,34 @@ class ClaudeCodeProcess: Identifiable {
         }
     }
 
-    /// Stop the running process
+    /// Stop the running process (SIGTERM, then SIGKILL after 5s)
     func stop() {
         guard isRunning, let proc = process, proc.isRunning else { return }
         proc.terminate()
+        // Escalate to SIGKILL if process doesn't exit within 5 seconds
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak proc] in
+            guard let proc = proc, proc.isRunning else { return }
+            proc.interrupt() // SIGINT
+            DispatchQueue.global().asyncAfter(deadline: .now() + 3) { [weak proc] in
+                guard let proc = proc, proc.isRunning else { return }
+                kill(proc.processIdentifier, SIGKILL)
+            }
+        }
+    }
+
+    // MARK: - Stale process detection
+
+    private func startStaleTimer() {
+        staleTimer?.invalidate()
+        staleTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            guard let self = self, self.isRunning else { return }
+            let elapsed = Date().timeIntervalSince(self.lastActivityDate)
+            if elapsed > self.staleTimeout {
+                self.addEntry(.init(kind: .error("Process unresponsive for \(Int(elapsed))s — terminating")))
+                self.flushEntries()
+                self.stop()
+            }
+        }
     }
 
     // MARK: - Throttled entry flush

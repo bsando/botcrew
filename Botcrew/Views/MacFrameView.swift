@@ -23,7 +23,7 @@ struct MacFrameView: View {
 
             Spacer()
 
-            Text("Botcrew")
+            Text("BotCrew")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Theme.textPrimary(colorScheme))
 

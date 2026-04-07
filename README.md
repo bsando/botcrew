@@ -1,4 +1,4 @@
-# Botcrew
+# BotCrew
 
 A native macOS app (SwiftUI) for managing Claude Code multi-agent sessions. Pixel art office with animated sprites representing each agent. Feed-primary, ambient office panel below.
 

@@ -54,27 +54,67 @@ struct AgentStateParser {
 
     // MARK: - Token Counting
 
+    /// Token usage broken down by billing category
+    struct TokenUsage {
+        let inputTokens: Int
+        let cacheCreationTokens: Int
+        let cacheReadTokens: Int
+        let outputTokens: Int
+
+        var totalTokens: Int { inputTokens + cacheCreationTokens + cacheReadTokens + outputTokens }
+    }
+
     /// Extract token usage from a JSONL event's message.usage field
-    static func extractUsage(from event: JSONLEvent) -> (input: Int, output: Int)? {
+    static func extractUsage(from event: JSONLEvent) -> TokenUsage? {
         guard let message = event.raw["message"] as? [String: Any],
               let usage = message["usage"] as? [String: Any] else {
             return nil
         }
 
-        let input = (usage["input_tokens"] as? Int ?? 0)
-            + (usage["cache_creation_input_tokens"] as? Int ?? 0)
-            + (usage["cache_read_input_tokens"] as? Int ?? 0)
-        let output = usage["output_tokens"] as? Int ?? 0
-
-        return (input, output)
+        return TokenUsage(
+            inputTokens: usage["input_tokens"] as? Int ?? 0,
+            cacheCreationTokens: usage["cache_creation_input_tokens"] as? Int ?? 0,
+            cacheReadTokens: usage["cache_read_input_tokens"] as? Int ?? 0,
+            outputTokens: usage["output_tokens"] as? Int ?? 0
+        )
     }
 
-    /// Estimate cost from token counts (approximate Claude pricing)
-    static func estimateCost(inputTokens: Int, outputTokens: Int) -> Double {
-        // Approximate pricing: $15/M input, $75/M output for Opus
-        let inputCost = Double(inputTokens) / 1_000_000.0 * 15.0
-        let outputCost = Double(outputTokens) / 1_000_000.0 * 75.0
-        return inputCost + outputCost
+    // MARK: - Cost Estimation
+
+    /// Model pricing per million tokens (as of 2026-04)
+    struct ModelPricing {
+        let inputPerM: Double
+        let cacheReadPerM: Double
+        let cacheCreationPerM: Double
+        let outputPerM: Double
+    }
+
+    private static let pricingTable: [String: ModelPricing] = [
+        "sonnet": ModelPricing(inputPerM: 3.0, cacheReadPerM: 0.30, cacheCreationPerM: 3.75, outputPerM: 15.0),
+        "opus": ModelPricing(inputPerM: 15.0, cacheReadPerM: 1.50, cacheCreationPerM: 18.75, outputPerM: 75.0),
+        "haiku": ModelPricing(inputPerM: 0.80, cacheReadPerM: 0.08, cacheCreationPerM: 1.0, outputPerM: 4.0),
+    ]
+
+    /// Default pricing when model is unknown (Sonnet — most common in Claude Code)
+    private static let defaultPricing = ModelPricing(inputPerM: 3.0, cacheReadPerM: 0.30, cacheCreationPerM: 3.75, outputPerM: 15.0)
+
+    /// Look up pricing for a model string (matches keyword, e.g. "claude-sonnet-4-20250514")
+    static func pricingForModel(_ model: String?) -> ModelPricing {
+        guard let model = model?.lowercased() else { return defaultPricing }
+        for (keyword, pricing) in pricingTable {
+            if model.contains(keyword) { return pricing }
+        }
+        return defaultPricing
+    }
+
+    /// Estimate cost from detailed token usage and model
+    static func estimateCost(usage: TokenUsage, model: String? = nil) -> Double {
+        let p = pricingForModel(model)
+        let inputCost = Double(usage.inputTokens) / 1_000_000.0 * p.inputPerM
+        let cacheReadCost = Double(usage.cacheReadTokens) / 1_000_000.0 * p.cacheReadPerM
+        let cacheCreationCost = Double(usage.cacheCreationTokens) / 1_000_000.0 * p.cacheCreationPerM
+        let outputCost = Double(usage.outputTokens) / 1_000_000.0 * p.outputPerM
+        return inputCost + cacheReadCost + cacheCreationCost + outputCost
     }
 
     // MARK: - Subagent Detection
@@ -124,20 +164,46 @@ struct AgentStateParser {
 
     // MARK: - Error Detection
 
+    /// Patterns that indicate real errors (not just the word "error" in discussion)
+    private static let errorPatterns: [String] = [
+        "error:",           // "Error: file not found"
+        "failed to",        // "Failed to read file"
+        "permission denied", // filesystem/network errors
+        "command failed",   // bash tool failures
+        "exit code",        // non-zero exit codes
+        "traceback",        // Python stack traces
+        "panic:",           // Go panics
+        "fatal:",           // fatal errors
+        "exception:",       // generic exceptions
+        "errno",            // system errors
+        "segmentation fault",
+        "no such file",
+        "not found:",
+    ]
+
     /// Check if event content contains an error
     static func containsError(_ event: JSONLEvent) -> Bool {
-        guard let content = event.contentArray else {
-            // Check for tool_result errors
-            if let message = event.raw["message"] as? [String: Any],
-               let content = message["content"] as? [[String: Any]] {
-                return content.contains { ($0["is_error"] as? Bool) == true }
+        // Check for explicit tool_result errors (most reliable signal)
+        if let message = event.raw["message"] as? [String: Any],
+           let content = message["content"] as? [[String: Any]] {
+            if content.contains(where: { ($0["is_error"] as? Bool) == true }) {
+                return true
             }
-            return false
         }
-        // Check for error text in assistant content
+
+        // Check for error-stop-reason on the message itself
+        if let message = event.raw["message"] as? [String: Any],
+           let stopReason = message["stop_reason"] as? String,
+           stopReason == "error" {
+            return true
+        }
+
+        // Check for error patterns in assistant text content
+        guard let content = event.contentArray else { return false }
         return content.contains { item in
             guard let text = item["text"] as? String else { return false }
-            return text.lowercased().contains("error") && text.lowercased().contains("failed")
+            let lower = text.lowercased()
+            return errorPatterns.contains { lower.contains($0) }
         }
     }
 }
