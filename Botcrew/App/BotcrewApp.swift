@@ -5,6 +5,7 @@ import SwiftUI
 
 @main
 struct BotcrewApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState: AppState = {
         if ProcessInfo.processInfo.arguments.contains("-UITestMode") {
             return AppState.withMockData()
@@ -44,5 +45,22 @@ struct BotcrewApp: App {
                 .keyboardShortcut("0", modifiers: .command)
             }
         }
+    }
+}
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Close extra windows — WindowGroup sometimes restores multiples
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            let windows = NSApplication.shared.windows.filter { $0.isVisible }
+            guard windows.count > 1 else { return }
+            for window in windows.dropFirst() {
+                window.close()
+            }
+        }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
     }
 }
