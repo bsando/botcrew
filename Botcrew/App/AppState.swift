@@ -194,6 +194,13 @@ class AppState {
         saveState()
     }
 
+    /// Save cluster zone config for a root agent
+    func setClusterZone(projectId: UUID, rootName: String, config: ClusterZoneConfig) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        projects[idx].officeLayout.clusterZones[rootName] = config
+        saveState()
+    }
+
     /// Resolve the sprite grid for an agent, checking custom sprites first
     func resolveGrid(for agent: Agent, status: AgentStatus) -> [[Int]] {
         if let project = selectedProject,

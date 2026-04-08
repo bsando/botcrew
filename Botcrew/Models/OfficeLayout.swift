@@ -11,6 +11,14 @@ struct OfficeLayout: Codable {
     var agentColors: [String: AgentColorConfig] = [:]
     /// Agent name → custom sprite pixel art (overrides theme)
     var customSprites: [String: SpriteShapeSet] = [:]
+    /// Root agent name → cluster zone visual config
+    var clusterZones: [String: ClusterZoneConfig] = [:]
+}
+
+struct ClusterZoneConfig: Codable, Equatable {
+    var colorHex: UInt32?    // nil = use agent body color
+    var insets: CGFloat = 8
+    var cornerRadius: CGFloat = 8
 }
 
 struct AgentColorConfig: Codable, Equatable {

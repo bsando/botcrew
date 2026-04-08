@@ -36,6 +36,10 @@ struct OfficeCanvasView: View {
     @State private var editBodyColor: Color = .white
     @State private var editShirtColor: Color = .gray
     @State private var editingSpriteAgent: Agent?
+    @State private var editingZoneAgentId: UUID?
+    @State private var editZoneColor: Color = .purple
+    @State private var editZoneInsets: CGFloat = 8
+    @State private var editZoneRadius: CGFloat = 8
 
     var body: some View {
         TimelineView(.animation) { timeline in
@@ -112,6 +116,16 @@ struct OfficeCanvasView: View {
                                 Button("Edit Sprite...") {
                                     editingSpriteAgent = sprite.agent
                                 }
+                                if sprite.isRoot {
+                                    Divider()
+                                    Button("Edit Zone...") {
+                                        let existing = appState.selectedProject?.officeLayout.clusterZones[sprite.agent.name]
+                                        editZoneColor = existing?.colorHex.map { Color(hex: $0) } ?? sprite.agent.bodyColor
+                                        editZoneInsets = existing?.insets ?? 8
+                                        editZoneRadius = existing?.cornerRadius ?? 8
+                                        editingZoneAgentId = sprite.id
+                                    }
+                                }
                             }
                             .popover(
                                 isPresented: Binding(
@@ -131,6 +145,31 @@ struct OfficeCanvasView: View {
                                             shirtHex: editShirtColor.toHex()
                                         )
                                         editingColorAgentId = nil
+                                    }
+                                )
+                            }
+                            .popover(
+                                isPresented: Binding(
+                                    get: { editingZoneAgentId == sprite.id },
+                                    set: { if !$0 { editingZoneAgentId = nil } }
+                                )
+                            ) {
+                                ZoneEditor(
+                                    zoneColor: $editZoneColor,
+                                    insets: $editZoneInsets,
+                                    cornerRadius: $editZoneRadius,
+                                    onSave: {
+                                        guard let pid = appState.selectedProjectId else { return }
+                                        appState.setClusterZone(
+                                            projectId: pid,
+                                            rootName: sprite.agent.name,
+                                            config: ClusterZoneConfig(
+                                                colorHex: editZoneColor.toHex(),
+                                                insets: editZoneInsets,
+                                                cornerRadius: editZoneRadius
+                                            )
+                                        )
+                                        editingZoneAgentId = nil
                                     }
                                 )
                             }
@@ -219,13 +258,17 @@ struct OfficeCanvasView: View {
             let clusterOpacity = isActive ? 1.0 : 0.45
 
             // Draw cluster zone rect
+            let zoneConfig = appState.selectedProject?.officeLayout.clusterZones[root.name]
+            let zoneInsets = zoneConfig?.insets ?? 8
+            let zoneRadius = zoneConfig?.cornerRadius ?? 8
+            let zoneColor = zoneConfig?.colorHex.map { Color(hex: $0) } ?? root.bodyColor
             let zoneRect = CGRect(
-                x: clusterWidth * CGFloat(i) + 8,
-                y: 8,
-                width: clusterWidth - 16,
-                height: size.height - 16
+                x: clusterWidth * CGFloat(i) + zoneInsets,
+                y: zoneInsets,
+                width: clusterWidth - zoneInsets * 2,
+                height: size.height - zoneInsets * 2
             )
-            drawClusterZone(context: &context, rect: zoneRect, color: root.bodyColor, opacity: clusterOpacity)
+            drawClusterZone(context: &context, rect: zoneRect, color: zoneColor, opacity: clusterOpacity, cornerRadius: zoneRadius)
 
             // Get sprites for this cluster
             let clusterLayouts = layouts.filter { layout in
@@ -290,8 +333,8 @@ struct OfficeCanvasView: View {
         }
     }
 
-    private func drawClusterZone(context: inout GraphicsContext, rect: CGRect, color: Color, opacity: Double) {
-        let path = Path(roundedRect: rect, cornerRadius: 8)
+    private func drawClusterZone(context: inout GraphicsContext, rect: CGRect, color: Color, opacity: Double, cornerRadius: CGFloat = 8) {
+        let path = Path(roundedRect: rect, cornerRadius: cornerRadius)
         context.fill(path, with: .color(color.opacity(0.04 * opacity)))
         context.stroke(
             path,
