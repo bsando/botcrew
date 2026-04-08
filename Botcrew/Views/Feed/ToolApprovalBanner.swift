@@ -84,7 +84,7 @@ struct ToolApprovalBanner: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
                     .background(
-                        RoundedRectangle(cornerRadius: 5)
+                        RoundedRectangle(cornerRadius: Theme.cornerRadiusSmall)
                             .fill(Theme.separator(colorScheme))
                     )
 
@@ -97,8 +97,8 @@ struct ToolApprovalBanner: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
                     .background(
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(Color(hex: 0x0A84FF))
+                        RoundedRectangle(cornerRadius: Theme.cornerRadiusSmall)
+                            .fill(Theme.systemBlue)
                     )
                 }
                 .padding(.horizontal, 12)

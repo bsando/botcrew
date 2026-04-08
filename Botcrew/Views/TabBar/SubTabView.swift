@@ -39,31 +39,31 @@ struct SubTabView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(
-            RoundedRectangle(cornerRadius: 5)
+            RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium)
                 .fill(Theme.subTabBg(colorScheme, isSelected: isSelected))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 5)
+            RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium)
                 .strokeBorder(tabBorder, lineWidth: 1)
         )
     }
 
     private var tabBorder: Color {
         if agent.status == .error {
-            return Color(hex: 0xFF5F57).opacity(0.4)
+            return Theme.statusRed.opacity(0.4)
         }
         if isSelected {
-            return Color(red: 10/255, green: 132/255, blue: 255/255, opacity: 0.3)
+            return Theme.systemBlue.opacity(0.3)
         }
         return Color.clear
     }
 
     private func statusColor(_ status: AgentStatus) -> Color {
         switch status {
-        case .typing, .reading: Color(hex: 0x28C840)
-        case .waiting: Color(hex: 0xFEBC2E)
-        case .idle: Color(hex: 0x888780)
-        case .error: Color(hex: 0xFF5F57)
+        case .typing, .reading: Theme.statusGreen
+        case .waiting: Theme.statusAmber
+        case .idle: Theme.statusGray
+        case .error: Theme.statusRed
         }
     }
 }

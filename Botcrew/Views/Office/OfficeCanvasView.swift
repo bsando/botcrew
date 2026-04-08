@@ -30,10 +30,11 @@ struct BobParams {
 
 struct OfficeCanvasView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         TimelineView(.animation) { timeline in
-            let time = timeline.date.timeIntervalSinceReferenceDate
+            let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
 
             GeometryReader { geo in
                 let layouts = computeLayouts(in: geo.size)

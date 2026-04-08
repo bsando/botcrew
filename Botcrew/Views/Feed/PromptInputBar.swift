@@ -19,14 +19,17 @@ struct PromptInputBar: View {
         appState.selectedProject?.isAttached == true
     }
 
-    /// Autocomplete items — unified wrapper for both command types
+    /// Autocomplete items — unified under / prefix (\ still works for backwards compat)
     private var autocompleteItems: [AutocompleteItem] {
         if promptText.hasPrefix("\\") {
             let query = String(promptText.dropFirst())
             return BotcrewCommand.matching(query).map { .botcrew($0) }
         } else if promptText.hasPrefix("/") {
             let query = String(promptText.dropFirst())
-            return SlashCommand.matching(query).map { .slash($0) }
+            // Show both Botcrew and CLI commands under /
+            let botcrew = BotcrewCommand.matching(query).map { AutocompleteItem.botcrew($0) }
+            let cli = SlashCommand.matching(query).map { AutocompleteItem.slash($0) }
+            return botcrew + cli
         }
         return []
     }
@@ -79,7 +82,7 @@ struct PromptInputBar: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
                     .background(
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: Theme.cornerRadiusSmall)
                             .fill(permissionColor.opacity(0.12))
                     )
                 }
@@ -152,12 +155,12 @@ struct PromptInputBar: View {
                             Text("Detach")
                                 .font(.system(size: 10, weight: .medium))
                         }
-                        .foregroundStyle(Color(hex: 0xFF5F57))
+                        .foregroundStyle(Theme.statusRed)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
                         .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(hex: 0xFF5F57).opacity(0.12))
+                            RoundedRectangle(cornerRadius: Theme.cornerRadiusSmall)
+                                .fill(Theme.statusRed.opacity(0.12))
                         )
                     }
                     .buttonStyle(.plain)
@@ -171,7 +174,7 @@ struct PromptInputBar: View {
                     } label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 18))
-                            .foregroundStyle(promptText.isEmpty ? Theme.textTertiary(colorScheme) : Color(hex: 0x0A84FF))
+                            .foregroundStyle(promptText.isEmpty ? Theme.textTertiary(colorScheme) : Theme.systemBlue)
                     }
                     .buttonStyle(.plain)
                     .disabled(promptText.isEmpty)
@@ -191,7 +194,7 @@ struct PromptInputBar: View {
 
     private var permissionIcon: String {
         switch appState.permissionMode {
-        case .auto: "bolt.fill"
+        case .auto: "bolt.trianglebadge.exclamationmark.fill"
         case .supervised: "shield.checkered"
         case .safe: "lock.fill"
         }
@@ -199,9 +202,9 @@ struct PromptInputBar: View {
 
     private var permissionColor: Color {
         switch appState.permissionMode {
-        case .auto: Color(hex: 0xFF5F57)
-        case .supervised: Color(hex: 0xFEBC2E)
-        case .safe: Color(hex: 0x28C840)
+        case .auto: Color(hex: 0xFEBC2E)       // amber — permissive, use caution
+        case .supervised: Color(hex: 0x0A84FF)  // blue — balanced default
+        case .safe: Color(hex: 0x888780)        // gray — locked down
         }
     }
 
@@ -216,7 +219,7 @@ struct PromptInputBar: View {
            let proc = appState.processes[projectId], proc.hasRanBefore {
             return "Send a follow-up message..."
         }
-        return "Ask Claude something... (type / or \\ for commands)"
+        return "Ask Claude something... (type / for commands)"
     }
 
     private func executeItem(_ item: AutocompleteItem) {
@@ -319,7 +322,7 @@ private struct CommandAutocomplete: View {
                     .padding(.vertical, 6)
                     .background(
                         index == selectedIndex
-                            ? Color(hex: 0x0A84FF).opacity(0.8)
+                            ? Theme.systemBlue.opacity(0.8)
                             : Color.clear
                     )
                     .contentShape(Rectangle())

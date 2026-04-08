@@ -47,8 +47,8 @@ class AppState {
     var showAgentTree = true
     var showFileTree = true
 
-    // MARK: - Office Panel Easter Egg
-    var showOfficePanel = false
+    // MARK: - Office Panel
+    var showOfficePanel = true
 
     init(skipPersistence: Bool = false) {
         if !skipPersistence {

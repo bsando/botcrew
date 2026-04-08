@@ -87,15 +87,15 @@ enum Theme {
     }
 
     static func textSecondary(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? .white.opacity(0.55) : .black.opacity(0.55)
+        scheme == .dark ? .white.opacity(0.65) : .black.opacity(0.60)
     }
 
     static func textTertiary(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? .white.opacity(0.30) : .black.opacity(0.30)
+        scheme == .dark ? .white.opacity(0.40) : .black.opacity(0.40)
     }
 
     static func textMuted(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? .white.opacity(0.35) : .black.opacity(0.40)
+        scheme == .dark ? .white.opacity(0.45) : .black.opacity(0.45)
     }
 
     static func textOnDark(_ scheme: ColorScheme) -> Color {
@@ -116,6 +116,20 @@ enum Theme {
     static func iconMuted(_ scheme: ColorScheme) -> Color {
         scheme == .dark ? .white.opacity(0.35) : .black.opacity(0.35)
     }
+
+    // MARK: - Corner Radii
+
+    static let cornerRadiusSmall: CGFloat = 4
+    static let cornerRadiusMedium: CGFloat = 8
+    static let cornerRadiusLarge: CGFloat = 12
+
+    // MARK: - Semantic Colors (centralized hex literals)
+
+    static let systemBlue = Color(red: 10/255, green: 132/255, blue: 255/255)   // 0x0A84FF
+    static let statusGreen = Color(red: 40/255, green: 200/255, blue: 64/255)   // 0x28C840
+    static let statusAmber = Color(red: 254/255, green: 188/255, blue: 46/255)  // 0xFEBC2E
+    static let statusGray = Color(red: 136/255, green: 135/255, blue: 128/255)  // 0x888780
+    static let statusRed = Color(red: 255/255, green: 95/255, blue: 87/255)     // 0xFF5F57
 
     // MARK: - Office Panel (always dark)
 

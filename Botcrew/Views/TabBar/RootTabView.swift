@@ -63,11 +63,11 @@ struct RootTabView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium)
                 .fill(tabBackground)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium)
                 .strokeBorder(tabBorder, lineWidth: 1)
         )
     }
@@ -78,20 +78,20 @@ struct RootTabView: View {
 
     private var tabBorder: Color {
         if hasError {
-            return Color(hex: 0xFF5F57).opacity(0.4)
+            return Theme.statusRed.opacity(0.4)
         }
         if isSelected {
-            return Color(red: 10/255, green: 132/255, blue: 255/255, opacity: 0.3)
+            return Theme.systemBlue.opacity(0.3)
         }
         return Color.clear
     }
 
     private func statusColor(_ status: AgentStatus) -> Color {
         switch status {
-        case .typing, .reading: Color(hex: 0x28C840)
-        case .waiting: Color(hex: 0xFEBC2E)
-        case .idle: Color(hex: 0x888780)
-        case .error: Color(hex: 0xFF5F57)
+        case .typing, .reading: Theme.statusGreen
+        case .waiting: Theme.statusAmber
+        case .idle: Theme.statusGray
+        case .error: Theme.statusRed
         }
     }
 }
@@ -103,21 +103,22 @@ struct PulsingPip: View {
     let shouldPulse: Bool
     var size: CGFloat = 6
     @State private var isPulsing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Circle()
             .fill(color)
             .frame(width: size, height: size)
-            .opacity(shouldPulse && isPulsing ? 0.4 : 1.0)
+            .opacity(shouldPulse && isPulsing && !reduceMotion ? 0.4 : 1.0)
             .onAppear {
-                if shouldPulse {
+                if shouldPulse && !reduceMotion {
                     withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
                         isPulsing = true
                     }
                 }
             }
             .onChange(of: shouldPulse) { _, newValue in
-                if newValue {
+                if newValue && !reduceMotion {
                     withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
                         isPulsing = true
                     }
