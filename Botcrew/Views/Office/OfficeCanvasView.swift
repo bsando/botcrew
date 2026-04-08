@@ -77,8 +77,14 @@ struct OfficeCanvasView: View {
                             .frame(width: 56, height: 60)
                             .contentShape(Rectangle())
                             .position(displayPos)
+                            .onTapGesture {
+                                appState.selectAgent(sprite.id)
+                                if sprite.agent.status == .error {
+                                    appState.showTerminal = true
+                                }
+                            }
                             .gesture(
-                                DragGesture()
+                                DragGesture(minimumDistance: 5)
                                     .onChanged { value in
                                         dragOffsets[sprite.id] = value.translation
                                     }
@@ -98,14 +104,6 @@ struct OfficeCanvasView: View {
                                         }
                                         dragOffsets.removeValue(forKey: sprite.id)
                                     }
-                            )
-                            .simultaneousGesture(
-                                TapGesture().onEnded {
-                                    appState.selectAgent(sprite.id)
-                                    if sprite.agent.status == .error {
-                                        appState.showTerminal = true
-                                    }
-                                }
                             )
                             .contextMenu {
                                 Button("Edit Colors...") {
