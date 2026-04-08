@@ -61,7 +61,8 @@ final class OfficeLayoutTests: XCTestCase {
     // MARK: - SpriteData shapes
 
     func testAllShapesAre8x10() {
-        let shapes: [[[Int]]] = [SpriteData.body, SpriteData.type, SpriteData.shrug, SpriteData.error]
+        let blobs = SpriteTheme.blobs.shapes
+        let shapes: [[[Int]]] = [blobs.body, blobs.type, blobs.shrug, blobs.error]
         for (i, shape) in shapes.enumerated() {
             XCTAssertEqual(shape.count, 10, "Shape \(i) should be 10 rows")
             for (j, row) in shape.enumerated() {
@@ -71,20 +72,21 @@ final class OfficeLayoutTests: XCTestCase {
     }
 
     func testShapeForStatusMapping() {
-        XCTAssertEqual(SpriteData.shape(for: .typing), SpriteData.type)
-        XCTAssertEqual(SpriteData.shape(for: .waiting), SpriteData.shrug)
-        XCTAssertEqual(SpriteData.shape(for: .error), SpriteData.error)
-        XCTAssertEqual(SpriteData.shape(for: .idle), SpriteData.body)
-        XCTAssertEqual(SpriteData.shape(for: .reading), SpriteData.body)
+        let blobs = SpriteTheme.blobs.shapes
+        XCTAssertEqual(SpriteData.shape(for: .typing), blobs.type)
+        XCTAssertEqual(SpriteData.shape(for: .waiting), blobs.shrug)
+        XCTAssertEqual(SpriteData.shape(for: .error), blobs.error)
+        XCTAssertEqual(SpriteData.shape(for: .idle), blobs.body)
+        XCTAssertEqual(SpriteData.shape(for: .reading), blobs.body)
     }
 
     func testErrorShapeHasXEyes() {
-        let flat = SpriteData.error.flatMap { $0 }
+        let flat = SpriteTheme.blobs.shapes.error.flatMap { $0 }
         XCTAssertTrue(flat.contains(6), "Error shape should contain X-eye pixels (value 6)")
     }
 
     func testTypeShapeHasNoXEyes() {
-        let flat = SpriteData.type.flatMap { $0 }
+        let flat = SpriteTheme.blobs.shapes.type.flatMap { $0 }
         XCTAssertFalse(flat.contains(6), "Type shape should not contain X-eye pixels")
     }
 

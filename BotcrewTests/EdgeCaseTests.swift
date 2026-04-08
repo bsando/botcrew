@@ -324,7 +324,7 @@ final class EdgeCaseTests: XCTestCase {
     // MARK: - SpriteData Edge Cases
 
     func testAllShapesAre8x10() {
-        let shapes: [[[Int]]] = [SpriteData.body, SpriteData.type, SpriteData.shrug, SpriteData.error]
+        let b = SpriteTheme.blobs.shapes; let shapes: [[[Int]]] = [b.body, b.type, b.shrug, b.error]
         for shape in shapes {
             XCTAssertEqual(shape.count, SpriteData.gridHeight)
             for row in shape {
@@ -335,7 +335,7 @@ final class EdgeCaseTests: XCTestCase {
 
     func testAllShapesUseValidPixelValues() {
         let validValues: Set<Int> = [0, 1, 2, 3, 6]
-        let shapes: [[[Int]]] = [SpriteData.body, SpriteData.type, SpriteData.shrug, SpriteData.error]
+        let b = SpriteTheme.blobs.shapes; let shapes: [[[Int]]] = [b.body, b.type, b.shrug, b.error]
         for shape in shapes {
             for row in shape {
                 for val in row {

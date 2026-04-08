@@ -52,7 +52,7 @@ final class AnimationTests: XCTestCase {
         let shape = SpriteData.shape(for: .typing)
         // Type shape is shifted right (col 0 row 0 should be transparent)
         XCTAssertEqual(shape[0][0], 0)
-        XCTAssertNotEqual(shape, SpriteData.body)
+        XCTAssertNotEqual(shape, SpriteTheme.blobs.shapes.body)
     }
 
     func testWaitingUsesShrug() {
