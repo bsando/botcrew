@@ -173,6 +173,29 @@ class AppState {
         saveState()
     }
 
+    /// Set custom colors for an agent
+    func setAgentColors(projectId: UUID, agentName: String, bodyHex: UInt32, shirtHex: UInt32) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        projects[idx].officeLayout.agentColors[agentName] = AgentColorConfig(
+            bodyColorHex: bodyHex, shirtColorHex: shirtHex
+        )
+        // Apply immediately to matching agent
+        if let agentIdx = projects[idx].agents.firstIndex(where: { $0.name == agentName }) {
+            projects[idx].agents[agentIdx].bodyColor = Color(hex: bodyHex)
+            projects[idx].agents[agentIdx].shirtColor = Color(hex: shirtHex)
+        }
+        saveState()
+    }
+
+    /// Apply persisted colors to an agent if available
+    func applyPersistedColors(to agent: inout Agent, projectIdx: Int) {
+        let layout = projects[projectIdx].officeLayout
+        if let colors = layout.agentColors[agent.name] {
+            agent.bodyColor = Color(hex: colors.bodyColorHex)
+            agent.shirtColor = Color(hex: colors.shirtColorHex)
+        }
+    }
+
     // MARK: - Rate Limit (account-level, transient)
     var rateLimitInfo: RateLimitInfo?
 
@@ -1018,7 +1041,7 @@ class AppState {
         let name = (filePath as NSString).lastPathComponent
             .replacingOccurrences(of: ".jsonl", with: "")
 
-        let subAgent = Agent(
+        var subAgent = Agent(
             id: UUID(),
             name: name,
             parentId: rootAgentId,
@@ -1028,6 +1051,7 @@ class AppState {
             spawnTime: Date()
         )
 
+        applyPersistedColors(to: &subAgent, projectIdx: idx)
         projects[idx].agents.append(subAgent)
         agentSessionMap[filePath] = subAgent.id
 
@@ -1284,7 +1308,7 @@ class AppState {
         let name = (filePath as NSString).lastPathComponent
             .replacingOccurrences(of: ".jsonl", with: "")
 
-        let subAgent = Agent(
+        var subAgent = Agent(
             id: UUID(),
             name: name,
             parentId: rootAgentId,
@@ -1293,6 +1317,7 @@ class AppState {
             shirtColor: Color(hex: colors.shirt),
             spawnTime: Date()
         )
+        applyPersistedColors(to: &subAgent, projectIdx: projectIdx)
         projects[projectIdx].agents.append(subAgent)
         agentSessionMap[filePath] = subAgent.id
 
@@ -1457,5 +1482,16 @@ extension Color {
             green: Double((hex >> 8) & 0xFF) / 255,
             blue: Double(hex & 0xFF) / 255
         )
+    }
+
+    /// Convert to UInt32 hex (RGB only, no alpha)
+    func toHex() -> UInt32 {
+        let resolved = NSColor(self).usingColorSpace(.sRGB) ?? NSColor(self)
+        var r: CGFloat = 0; var g: CGFloat = 0; var b: CGFloat = 0
+        resolved.getRed(&r, green: &g, blue: &b, alpha: nil)
+        let ri = UInt32(max(0, min(255, r * 255)))
+        let gi = UInt32(max(0, min(255, g * 255)))
+        let bi = UInt32(max(0, min(255, b * 255)))
+        return (ri << 16) | (gi << 8) | bi
     }
 }

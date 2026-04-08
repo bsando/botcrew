@@ -32,6 +32,9 @@ struct OfficeCanvasView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dragOffsets: [UUID: CGSize] = [:]
+    @State private var editingColorAgentId: UUID?
+    @State private var editBodyColor: Color = .white
+    @State private var editShirtColor: Color = .gray
 
     var body: some View {
         TimelineView(.animation) { timeline in
@@ -99,6 +102,34 @@ struct OfficeCanvasView: View {
                                     }
                                 }
                             )
+                            .contextMenu {
+                                Button("Edit Colors...") {
+                                    editBodyColor = sprite.agent.bodyColor
+                                    editShirtColor = sprite.agent.shirtColor
+                                    editingColorAgentId = sprite.id
+                                }
+                            }
+                            .popover(
+                                isPresented: Binding(
+                                    get: { editingColorAgentId == sprite.id },
+                                    set: { if !$0 { editingColorAgentId = nil } }
+                                )
+                            ) {
+                                SpriteColorEditor(
+                                    bodyColor: $editBodyColor,
+                                    shirtColor: $editShirtColor,
+                                    onSave: {
+                                        guard let pid = appState.selectedProjectId else { return }
+                                        appState.setAgentColors(
+                                            projectId: pid,
+                                            agentName: sprite.agent.name,
+                                            bodyHex: editBodyColor.toHex(),
+                                            shirtHex: editShirtColor.toHex()
+                                        )
+                                        editingColorAgentId = nil
+                                    }
+                                )
+                            }
                     }
                 }
             }
