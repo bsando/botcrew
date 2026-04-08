@@ -141,6 +141,10 @@ class AppState {
     // MARK: - Session History
     var showSessionHistory = false
 
+    // MARK: - Attach Mode
+    var showAttachSheet = false
+    private var attachTimers: [UUID: Timer] = [:]  // projectId → stale-check timer
+
     // MARK: - Git
     var showGitPanel = false
 
@@ -719,6 +723,156 @@ class AppState {
             }
             projects[idx].status = .idle
         }
+    }
+
+    // MARK: - Attach Mode
+
+    /// Attach to an externally-running Claude session (read-only watch)
+    func attachToSession(projectId: UUID, sessionPath: String) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+
+        // If already attached or running, detach/stop first
+        if projects[idx].isAttached {
+            detachSession(projectId: projectId)
+        }
+        if processes[projectId] != nil {
+            stopSession(projectId: projectId)
+        }
+
+        // Clear stale agents/events from prior sessions
+        projects[idx].agents.removeAll()
+        projects[idx].events.removeAll()
+
+        // Read all existing events to reconstruct state
+        let events = JSONLWatcher.readAllEvents(from: sessionPath)
+
+        // Get file mod date for spawn time
+        let modDate = (try? FileManager.default.attributesOfItem(atPath: sessionPath))?[.modificationDate] as? Date ?? Date()
+
+        // Create root agent
+        let rootAgent = Agent(
+            id: UUID(),
+            name: "claude",
+            parentId: nil,
+            status: .idle,
+            bodyColor: Color(hex: 0xc0a8ff),
+            shirtColor: Color(hex: 0x5030a0),
+            spawnTime: modDate
+        )
+        projects[idx].agents.append(rootAgent)
+        agentSessionMap[sessionPath] = rootAgent.id
+
+        // Replay events to reconstruct activity and determine final status
+        var lastStatus: AgentStatus = .idle
+        for event in events {
+            guard event.isAssistant else { continue }
+            let toolUses = AgentStateParser.extractToolUses(from: event)
+            for toolUse in toolUses {
+                let eventType = AgentStateParser.eventTypeFromToolUse(toolUse.name)
+                let filePath = AgentStateParser.extractFilePath(from: toolUse.input)
+                lastStatus = AgentStateParser.statusFromToolUse(toolUse.name)
+
+                let toolContent = AgentStateParser.extractToolContent(from: toolUse.name, input: toolUse.input)
+                var activityEvent = ActivityEvent(
+                    id: UUID(),
+                    agentId: rootAgent.id,
+                    timestamp: event.timestamp ?? modDate,
+                    type: eventType,
+                    file: filePath,
+                    meta: toolUse.name
+                )
+                activityEvent.content = toolContent.content
+                activityEvent.oldString = toolContent.oldString
+                activityEvent.command = toolContent.command
+                projects[idx].events.append(activityEvent)
+            }
+            if AgentStateParser.containsError(event) {
+                lastStatus = .error
+                projects[idx].events.append(ActivityEvent(
+                    id: UUID(), agentId: rootAgent.id, timestamp: event.timestamp ?? modDate,
+                    type: .error, meta: "Error detected"
+                ))
+            }
+            if let usage = AgentStateParser.extractUsage(from: event) {
+                projects[idx].tokenCount += usage.totalTokens
+            }
+        }
+
+        // Keep live status (don't force idle — session may be actively running)
+        if let agentIdx = projects[idx].agents.firstIndex(where: { $0.id == rootAgent.id }) {
+            projects[idx].agents[agentIdx].status = lastStatus
+        }
+        projects[idx].status = lastStatus == .error ? .error : .active
+        projects[idx].isAttached = true
+
+        // Extract session ID
+        let sessionId = (sessionPath as NSString).lastPathComponent
+            .replacingOccurrences(of: ".jsonl", with: "")
+        projects[idx].lastSessionId = sessionId
+
+        // Scan for subagents
+        let subagentsDir = (sessionPath as NSString).deletingPathExtension + "/subagents"
+        if let subFiles = try? FileManager.default.contentsOfDirectory(atPath: subagentsDir) {
+            for file in subFiles where file.hasSuffix(".jsonl") {
+                let subPath = (subagentsDir as NSString).appendingPathComponent(file)
+                restoreSubagent(at: subPath, projectIdx: idx, rootAgentId: rootAgent.id)
+            }
+        }
+
+        // Set up watcher for live updates
+        let watcher = JSONLWatcher()
+        watcher.onEvent = { [weak self] filePath, event in
+            self?.handleJSONLEvent(event, filePath: filePath, projectId: projectId)
+        }
+        watcher.onNewSubagent = { [weak self] filePath in
+            self?.handleNewSubagent(filePath: filePath, projectId: projectId, rootAgentId: rootAgent.id)
+        }
+        watcher.watchFile(at: sessionPath)
+        watcher.watchSubagentDirectory(at: sessionPath)
+        watchers[projectId] = watcher
+
+        // Start stale detection timer — if file not updated for 60s, go idle
+        let staleTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            guard let attrs = try? FileManager.default.attributesOfItem(atPath: sessionPath),
+                  let lastMod = attrs[.modificationDate] as? Date else { return }
+            if Date().timeIntervalSince(lastMod) > 60 {
+                self.detachSession(projectId: projectId)
+            }
+        }
+        attachTimers[projectId] = staleTimer
+
+        // Auto-select
+        if selectedProjectId == projectId {
+            selectAgent(rootAgent.id)
+        }
+    }
+
+    /// Detach from an attached session (stop watching, keep history)
+    func detachSession(projectId: UUID) {
+        attachTimers[projectId]?.invalidate()
+        attachTimers.removeValue(forKey: projectId)
+
+        watchers[projectId]?.stopAll()
+        watchers.removeValue(forKey: projectId)
+
+        if let idx = projects.firstIndex(where: { $0.id == projectId }) {
+            for i in projects[idx].agents.indices {
+                if projects[idx].agents[i].status != .error {
+                    projects[idx].agents[i].status = .idle
+                }
+            }
+            projects[idx].status = .idle
+            projects[idx].isAttached = false
+        }
+    }
+
+    /// Scan for running Claude sessions not already being watched
+    func scanForRunningSessions() -> [RunningSessionInfo] {
+        let allRunning = SessionScanner.scanRunningSessions()
+        // Filter out sessions we're already watching
+        let watchedPaths = Set(agentSessionMap.keys)
+        return allRunning.filter { !watchedPaths.contains($0.filePath) }
     }
 
     /// Set up JSONL file watcher for a project

@@ -15,6 +15,10 @@ struct PromptInputBar: View {
         return appState.processes[projectId]?.isRunning == true
     }
 
+    private var isAttached: Bool {
+        appState.selectedProject?.isAttached == true
+    }
+
     /// Autocomplete items — unified wrapper for both command types
     private var autocompleteItems: [AutocompleteItem] {
         if promptText.hasPrefix("\\") {
@@ -108,7 +112,7 @@ struct PromptInputBar: View {
                     .font(.system(size: 13))
                     .focused($isFocused)
                     .onSubmit { submitPrompt() }
-                    .disabled(isProcessRunning)
+                    .disabled(isProcessRunning || isAttached)
                     .onChange(of: promptText) { _, newValue in
                         selectedCommandIndex = 0
                     }
@@ -136,7 +140,28 @@ struct PromptInputBar: View {
                         return .ignored
                     }
 
-                if isProcessRunning {
+                if isAttached {
+                    Button {
+                        if let pid = appState.selectedProjectId {
+                            appState.detachSession(projectId: pid)
+                        }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "eye.slash")
+                                .font(.system(size: 10))
+                            Text("Detach")
+                                .font(.system(size: 10, weight: .medium))
+                        }
+                        .foregroundStyle(Color(hex: 0xFF5F57))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color(hex: 0xFF5F57).opacity(0.12))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else if isProcessRunning {
                     ProgressView()
                         .scaleEffect(0.5)
                         .frame(width: 16, height: 16)
@@ -181,6 +206,9 @@ struct PromptInputBar: View {
     }
 
     private var placeholder: String {
+        if isAttached {
+            return "Attached (read-only)"
+        }
         if isProcessRunning {
             return "Claude is working..."
         }

@@ -44,6 +44,63 @@ enum SessionScanner {
         .sorted { $0.lastModified > $1.lastModified }
     }
 
+    /// Scan ALL Claude Code projects for actively running sessions (recently modified JSONL files)
+    static func scanRunningSessions(recencyThreshold: TimeInterval = 60) -> [RunningSessionInfo] {
+        let baseDir = JSONLWatcher.claudeProjectsDir
+        let fm = FileManager.default
+
+        guard let projectDirs = try? fm.contentsOfDirectory(atPath: baseDir) else {
+            return []
+        }
+
+        var results: [RunningSessionInfo] = []
+
+        for hash in projectDirs {
+            let dirPath = (baseDir as NSString).appendingPathComponent(hash)
+            var isDir: ObjCBool = false
+            guard fm.fileExists(atPath: dirPath, isDirectory: &isDir), isDir.boolValue else { continue }
+
+            guard let files = try? fm.contentsOfDirectory(atPath: dirPath) else { continue }
+            let jsonlFiles = files.filter { $0.hasSuffix(".jsonl") }
+
+            for file in jsonlFiles {
+                let filePath = (dirPath as NSString).appendingPathComponent(file)
+                guard let attrs = try? fm.attributesOfItem(atPath: filePath),
+                      let modDate = attrs[.modificationDate] as? Date,
+                      Date().timeIntervalSince(modDate) < recencyThreshold else { continue }
+
+                let sessionId = (file as NSString).deletingPathExtension
+                let fileURL = URL(fileURLWithPath: filePath)
+
+                // Reverse-map hash to project path: "-Users-brian-project" → "/Users/brian/project"
+                // The hash replaces all "/" with "-", so reverse by replacing "-" with "/"
+                // then validate the path exists
+                let reversedPath = "/" + hash.dropFirst().replacingOccurrences(of: "-", with: "/")
+
+                // Validate: check if the reversed path exists as a directory
+                let projectPath: String
+                if fm.fileExists(atPath: reversedPath, isDirectory: &isDir), isDir.boolValue {
+                    projectPath = reversedPath
+                } else {
+                    projectPath = reversedPath  // best guess, user can confirm
+                }
+
+                let (summary, _) = parseSessionHead(fileURL)
+
+                results.append(RunningSessionInfo(
+                    id: sessionId,
+                    filePath: filePath,
+                    projectHash: hash,
+                    projectPath: projectPath,
+                    summary: summary ?? "Untitled session",
+                    lastModified: modDate
+                ))
+            }
+        }
+
+        return results.sorted { $0.lastModified > $1.lastModified }
+    }
+
     /// Parse the first few lines of a JSONL file to extract the first user prompt and timestamp
     private static func parseSessionHead(_ fileURL: URL) -> (summary: String?, startDate: Date?) {
         guard let handle = try? FileHandle(forReadingFrom: fileURL) else { return (nil, nil) }

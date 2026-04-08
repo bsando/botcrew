@@ -74,6 +74,11 @@ struct SidebarView: View {
                                 Button("Session History...") {
                                     historyProjectId = project.id
                                 }
+                                if project.isAttached {
+                                    Button("Detach") {
+                                        appState.detachSession(projectId: project.id)
+                                    }
+                                }
                                 Divider()
                                 Button("Remove Project") {
                                     appState.removeProject(project.id)
@@ -87,22 +92,40 @@ struct SidebarView: View {
 
             Spacer()
 
-            // Add project button
-            Button {
-                appState.showAddProjectSheet = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .medium))
-                    Text("Add Project")
-                        .font(.system(size: 12, weight: .medium))
+            // Add project / Attach buttons
+            VStack(spacing: 0) {
+                Button {
+                    appState.showAddProjectSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .medium))
+                        Text("Add Project")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundStyle(Theme.textSecondary(colorScheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
-                .foregroundStyle(Theme.textSecondary(colorScheme))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .buttonStyle(.plain)
+
+                Button {
+                    appState.showAttachSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "eye")
+                            .font(.system(size: 11, weight: .medium))
+                        Text("Attach to Session")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundStyle(Theme.textSecondary(colorScheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             VStack(spacing: 8) {
                 RateLimitCard()
@@ -136,6 +159,13 @@ struct SidebarView: View {
                     .environment(appState)
             }
         }
+        .sheet(isPresented: Binding(
+            get: { appState.showAttachSheet },
+            set: { appState.showAttachSheet = $0 }
+        )) {
+            AttachSessionSheet()
+                .environment(appState)
+        }
     }
 
     private func startEditingProject(_ project: Project) {
@@ -162,9 +192,16 @@ struct SidebarProjectRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(statusColor(project.status))
-                .frame(width: 6, height: 6)
+            if project.isAttached {
+                Image(systemName: "eye")
+                    .font(.system(size: 8))
+                    .foregroundStyle(Color(hex: 0x28C840))
+                    .frame(width: 6)
+            } else {
+                Circle()
+                    .fill(statusColor(project.status))
+                    .frame(width: 6, height: 6)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 if isEditing {

@@ -17,6 +17,7 @@ struct Project: Identifiable {
     var tokenCount: Int
     var estimatedCost: Double
     var lastSessionId: String? = nil
+    var isAttached: Bool = false  // true = read-only watch of external session
 }
 
 // MARK: - Persistence (only project metadata, not ephemeral agents/events)

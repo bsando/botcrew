@@ -65,6 +65,19 @@ struct FeedHeaderView: View {
                         appState.selectedAgentId = nil
                     }
 
+                if project.isAttached {
+                    Text("ATTACHED")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.5)
+                        .foregroundStyle(Color(hex: 0x28C840))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color(hex: 0x28C840).opacity(0.12))
+                        )
+                }
+
                 if let agent = appState.selectedAgent {
                     Text("/")
                         .font(.system(size: 11))

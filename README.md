@@ -20,6 +20,8 @@ BotCrew reads Claude Code's JSONL transcript files. It doesn't modify Claude Cod
 3. **Watch agents work** — Each agent gets a sprite in the pixel office and a tab in the tab bar. Subagents appear automatically when spawned
 4. **Track costs** — Token usage and cost estimates are tracked per-session with model-specific pricing (Sonnet/Opus/Haiku)
 
+You can also **attach to a running session** — click "Attach to Session" in the sidebar to watch a `claude` session that's already running in another terminal. It's read-only and auto-detaches when the session goes idle.
+
 That's it. Add your project, send a prompt, watch the sprites go.
 
 ## What you see
@@ -37,7 +39,7 @@ That's it. Add your project, send a prompt, watch the sprites go.
 +----------+--------------------------------------+
 ```
 
-- **Sidebar** — Your projects with status dots, token counts, and cost tracking. Session history for resuming past sessions.
+- **Sidebar** — Your projects with status dots, token counts, and cost tracking. Session history for resuming past sessions. Attach to running sessions.
 - **Tab bar** — Root agents as large tabs, subagents tucked underneath. Click to switch. Clusters expand/collapse.
 - **Activity feed** — Structured tool cards showing file reads/writes with diffs, bash commands with output, and agent spawns. Toggle to raw terminal view with `Cmd+T`.
 - **Pixel office** — Animated blob sprites. Typing = hunched + fast bob. Waiting = arms wide. Error = X eyes + red flash. Click a sprite to select that agent's tab.
@@ -65,6 +67,7 @@ That's it. Add your project, send a prompt, watch the sprites go.
 - **Git integration** — Status, diffs, and commit from the app (`Cmd+G`)
 - **Prompt templates** — 6 built-in + custom templates with categories
 - **Sound notifications** — Glass/Basso/Pop for session complete, errors, spawns (toggleable)
+- **Attach mode** — Watch an already-running `claude` session from another terminal (read-only, auto-detach)
 - **Light + dark mode** — Follows system theme; office panel always stays dark
 - **State persistence** — Everything saved across launches
 
@@ -79,16 +82,20 @@ xcodegen generate
 open Botcrew.xcodeproj   # Cmd+R to run
 ```
 
-To build headless:
+To build headless (no Apple Developer account needed):
 ```bash
-xcodebuild -scheme Botcrew -destination 'platform=macOS' build \
-  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=""
+xcodebuild -scheme Botcrew -destination 'platform=macOS' -configuration Debug build \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 ```
 
 Run tests:
 ```bash
-xcodebuild -scheme Botcrew -destination 'platform=macOS' test \
-  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=""
+xcodebuild -scheme BotcrewTests -destination 'platform=macOS' test
+```
+
+Run the built app:
+```bash
+open ~/Library/Developer/Xcode/DerivedData/Botcrew-*/Build/Products/Debug/BotCrew.app
 ```
 
 ## License
