@@ -73,17 +73,8 @@ enum SessionScanner {
                 let fileURL = URL(fileURLWithPath: filePath)
 
                 // Reverse-map hash to project path: "-Users-brian-project" → "/Users/brian/project"
-                // The hash replaces all "/" with "-", so reverse by replacing "-" with "/"
-                // then validate the path exists
-                let reversedPath = "/" + hash.dropFirst().replacingOccurrences(of: "-", with: "/")
-
-                // Validate: check if the reversed path exists as a directory
-                let projectPath: String
-                if fm.fileExists(atPath: reversedPath, isDirectory: &isDir), isDir.boolValue {
-                    projectPath = reversedPath
-                } else {
-                    projectPath = reversedPath  // best guess, user can confirm
-                }
+                // This is lossy (hyphens in directory names are ambiguous) but works for most paths
+                let projectPath = "/" + hash.dropFirst().replacingOccurrences(of: "-", with: "/")
 
                 let (summary, _) = parseSessionHead(fileURL)
 

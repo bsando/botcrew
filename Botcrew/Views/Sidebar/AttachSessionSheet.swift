@@ -139,37 +139,25 @@ struct AttachSessionSheet: View {
     }
 
     private func attachToSession(_ session: RunningSessionInfo) {
-        // Find or create a project for this path
         let projectPath = URL(fileURLWithPath: session.projectPath, isDirectory: true)
-        let projectId: UUID
 
         if let existing = appState.projects.first(where: { $0.path == projectPath }) {
-            projectId = existing.id
+            appState.selectProject(existing.id)
+            appState.attachToSession(projectId: existing.id, sessionPath: session.filePath)
         } else {
-            // Create a new project for this path
             let name = projectPath.lastPathComponent
-            let project = Project(
-                id: UUID(),
-                name: name,
-                path: projectPath,
-                status: .idle,
-                agents: [],
-                events: [],
-                tokenCount: 0,
-                estimatedCost: 0
-            )
-            appState.projects.append(project)
-            projectId = project.id
+            appState.addProject(name: name, path: projectPath)
+            if let projectId = appState.selectedProjectId {
+                appState.attachToSession(projectId: projectId, sessionPath: session.filePath)
+            }
         }
-
-        appState.selectProject(projectId)
-        appState.attachToSession(projectId: projectId, sessionPath: session.filePath)
     }
 
     private func loadSessions() {
         isLoading = true
+        let appState = appState
         DispatchQueue.global(qos: .userInitiated).async {
-            let results = SessionScanner.scanRunningSessions()
+            let results = appState.scanForRunningSessions()
             DispatchQueue.main.async {
                 sessions = results
                 isLoading = false

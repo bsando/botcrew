@@ -292,6 +292,16 @@ class AppState {
     }
 
     func removeProject(_ id: UUID) {
+        // Clean up attach timers, watchers, and session map before removing
+        attachTimers[id]?.invalidate()
+        attachTimers.removeValue(forKey: id)
+        watchers[id]?.stopAll()
+        watchers.removeValue(forKey: id)
+        processes[id]?.stop()
+        processes.removeValue(forKey: id)
+        agentSessionMap = agentSessionMap.filter { _, agentId in
+            !(projects.first(where: { $0.id == id })?.agents.contains(where: { $0.id == agentId }) ?? false)
+        }
         projects.removeAll { $0.id == id }
         if selectedProjectId == id {
             selectedProjectId = projects.first?.id
@@ -713,15 +723,17 @@ class AppState {
         processes[projectId]?.stop()
         watchers[projectId]?.stopAll()
         watchers.removeValue(forKey: projectId)
+        attachTimers[projectId]?.invalidate()
+        attachTimers.removeValue(forKey: projectId)
 
         if let idx = projects.firstIndex(where: { $0.id == projectId }) {
-            // Mark all agents idle
             for i in projects[idx].agents.indices {
                 if projects[idx].agents[i].status != .error {
                     projects[idx].agents[i].status = .idle
                 }
             }
             projects[idx].status = .idle
+            projects[idx].isAttached = false
         }
     }
 
@@ -731,25 +743,15 @@ class AppState {
     func attachToSession(projectId: UUID, sessionPath: String) {
         guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
 
-        // If already attached or running, detach/stop first
-        if projects[idx].isAttached {
-            detachSession(projectId: projectId)
-        }
-        if processes[projectId] != nil {
-            stopSession(projectId: projectId)
-        }
+        if projects[idx].isAttached { detachSession(projectId: projectId) }
+        if processes[projectId] != nil { stopSession(projectId: projectId) }
 
-        // Clear stale agents/events from prior sessions
         projects[idx].agents.removeAll()
         projects[idx].events.removeAll()
 
-        // Read all existing events to reconstruct state
         let events = JSONLWatcher.readAllEvents(from: sessionPath)
-
-        // Get file mod date for spawn time
         let modDate = (try? FileManager.default.attributesOfItem(atPath: sessionPath))?[.modificationDate] as? Date ?? Date()
 
-        // Create root agent
         let rootAgent = Agent(
             id: UUID(),
             name: "claude",
@@ -762,7 +764,6 @@ class AppState {
         projects[idx].agents.append(rootAgent)
         agentSessionMap[sessionPath] = rootAgent.id
 
-        // Replay events to reconstruct activity and determine final status
         var lastStatus: AgentStatus = .idle
         for event in events {
             guard event.isAssistant else { continue }
@@ -798,19 +799,16 @@ class AppState {
             }
         }
 
-        // Keep live status (don't force idle — session may be actively running)
+        // Keep live status — session may be actively running
         if let agentIdx = projects[idx].agents.firstIndex(where: { $0.id == rootAgent.id }) {
             projects[idx].agents[agentIdx].status = lastStatus
         }
         projects[idx].status = lastStatus == .error ? .error : .active
         projects[idx].isAttached = true
 
-        // Extract session ID
-        let sessionId = (sessionPath as NSString).lastPathComponent
+        projects[idx].lastSessionId = (sessionPath as NSString).lastPathComponent
             .replacingOccurrences(of: ".jsonl", with: "")
-        projects[idx].lastSessionId = sessionId
 
-        // Scan for subagents
         let subagentsDir = (sessionPath as NSString).deletingPathExtension + "/subagents"
         if let subFiles = try? FileManager.default.contentsOfDirectory(atPath: subagentsDir) {
             for file in subFiles where file.hasSuffix(".jsonl") {
@@ -819,7 +817,6 @@ class AppState {
             }
         }
 
-        // Set up watcher for live updates
         let watcher = JSONLWatcher()
         watcher.onEvent = { [weak self] filePath, event in
             self?.handleJSONLEvent(event, filePath: filePath, projectId: projectId)
@@ -831,7 +828,7 @@ class AppState {
         watcher.watchSubagentDirectory(at: sessionPath)
         watchers[projectId] = watcher
 
-        // Start stale detection timer — if file not updated for 60s, go idle
+        // Auto-detach when file stops being written (60s stale threshold)
         let staleTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             guard let attrs = try? FileManager.default.attributesOfItem(atPath: sessionPath),
@@ -842,7 +839,6 @@ class AppState {
         }
         attachTimers[projectId] = staleTimer
 
-        // Auto-select
         if selectedProjectId == projectId {
             selectAgent(rootAgent.id)
         }
@@ -857,6 +853,8 @@ class AppState {
         watchers.removeValue(forKey: projectId)
 
         if let idx = projects.firstIndex(where: { $0.id == projectId }) {
+            let agentIds = Set(projects[idx].agents.map(\.id))
+            agentSessionMap = agentSessionMap.filter { !agentIds.contains($0.value) }
             for i in projects[idx].agents.indices {
                 if projects[idx].agents[i].status != .error {
                     projects[idx].agents[i].status = .idle
