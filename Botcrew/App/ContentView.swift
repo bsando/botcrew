@@ -154,6 +154,7 @@ struct BotcrewCommands: Commands {
             Divider()
 
             Toggle("Sound Notifications", isOn: $appState.soundEnabled)
+            Toggle("Desktop Notifications", isOn: $appState.notificationsEnabled)
         }
     }
 }

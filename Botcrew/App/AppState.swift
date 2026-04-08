@@ -53,7 +53,7 @@ class AppState {
     init(skipPersistence: Bool = false) {
         if !skipPersistence {
             loadState()
-            // Restore sessions after a short delay to let UI settle
+            NotificationService.requestPermission()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.restoreSessions()
             }
@@ -148,8 +148,9 @@ class AppState {
     // MARK: - Git
     var showGitPanel = false
 
-    // MARK: - Sound Notifications
+    // MARK: - Sound & Notifications
     var soundEnabled = true
+    var notificationsEnabled = true
 
     // MARK: - Rate Limit (account-level, transient)
     var rateLimitInfo: RateLimitInfo?
@@ -682,8 +683,11 @@ class AppState {
 
         guard type == "result" else { return }
 
-        // Session completed — play sound
+        let projectName = projects.first(where: { $0.id == projectId })?.name ?? "Session"
         if soundEnabled { SoundService.play(.sessionComplete) }
+        if notificationsEnabled {
+            NotificationService.send(.sessionComplete(projectName: projectName))
+        }
 
         let cost = event["total_cost_usd"] as? Double ?? 0
         guard cost > 0 else { return }
@@ -961,6 +965,9 @@ class AppState {
                 type: .error, meta: "Error detected"
             ))
             if soundEnabled { SoundService.play(.error) }
+            if notificationsEnabled {
+                NotificationService.send(.error(projectName: projects[idx].name))
+            }
         }
 
         // Update token counts and cost estimate
@@ -1012,6 +1019,11 @@ class AppState {
         // Auto-expand the root cluster to show new sub
         activeClusterId = rootAgentId
         if soundEnabled { SoundService.play(.subagentSpawned) }
+        if notificationsEnabled {
+            NotificationService.send(.subagentSpawned(
+                projectName: projects[idx].name, agentName: subAgent.name
+            ))
+        }
     }
 
     /// Reset the idle timer for an agent (goes idle after 2s of no events)
@@ -1076,6 +1088,7 @@ class AppState {
         var promptTemplates: [PromptTemplate]?
         var costHistory: [CostRecord]?
         var soundEnabled: Bool?
+        var notificationsEnabled: Bool?
     }
 
     func saveState() {
@@ -1087,7 +1100,8 @@ class AppState {
             permissionMode: permissionMode,
             promptTemplates: promptTemplates,
             costHistory: costHistory,
-            soundEnabled: soundEnabled
+            soundEnabled: soundEnabled,
+            notificationsEnabled: notificationsEnabled
         )
         do {
             let data = try JSONEncoder().encode(saved)
@@ -1116,6 +1130,7 @@ class AppState {
         promptTemplates = saved.promptTemplates ?? []
         costHistory = saved.costHistory ?? []
         soundEnabled = saved.soundEnabled ?? true
+        notificationsEnabled = saved.notificationsEnabled ?? true
     }
 
     // MARK: - Session Restore
