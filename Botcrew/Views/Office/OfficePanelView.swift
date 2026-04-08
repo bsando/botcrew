@@ -78,6 +78,33 @@ struct OfficePanelView: View {
 
             Spacer()
 
+            // Theme picker
+            Menu {
+                ForEach(SpriteTheme.allBuiltIn) { theme in
+                    Button {
+                        appState.selectedThemeId = theme.id
+                        appState.saveState()
+                    } label: {
+                        HStack {
+                            Text(theme.name)
+                            if theme.id == appState.selectedThemeId {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "paintpalette")
+                        .font(.system(size: 9))
+                    Text(appState.selectedTheme.name)
+                        .font(.system(size: 9, weight: .medium))
+                }
+                .foregroundStyle(Theme.textOnDark(colorScheme).opacity(0.35))
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+
             // Click to restore from collapsed
             if appState.officePanelSnap == .collapsed {
                 Button {

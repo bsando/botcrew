@@ -32,11 +32,12 @@ enum SpriteThumbnailSize {
 struct SpriteThumbnail: View {
     let bodyColor: Color
     let size: SpriteThumbnailSize
+    var theme: SpriteTheme = .blobs
 
     var body: some View {
         Canvas { context, canvasSize in
             let scale = size.pixelScale
-            let grid = SpriteData.body
+            let grid = theme.shapes.body
             let gridW = CGFloat(grid[0].count)
             let gridH = CGFloat(grid.count)
             let offsetX = (canvasSize.width - gridW * scale) / 2

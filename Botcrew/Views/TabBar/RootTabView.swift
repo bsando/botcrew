@@ -9,6 +9,7 @@ struct RootTabView: View {
     let isExpanded: Bool
     let isSelected: Bool
     let isEditing: Bool
+    var theme: SpriteTheme = .blobs
     @Binding var editText: String
     var onCommitRename: () -> Void = {}
     @Environment(\.colorScheme) private var colorScheme
@@ -20,7 +21,7 @@ struct RootTabView: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            SpriteThumbnail(bodyColor: agent.bodyColor, size: .root)
+            SpriteThumbnail(bodyColor: agent.bodyColor, size: .root, theme: theme)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {

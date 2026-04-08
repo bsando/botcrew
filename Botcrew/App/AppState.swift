@@ -152,6 +152,13 @@ class AppState {
     var soundEnabled = true
     var notificationsEnabled = true
 
+    // MARK: - Sprite Theme
+    var selectedThemeId: String = "blobs"
+
+    var selectedTheme: SpriteTheme {
+        SpriteTheme.allBuiltIn.first(where: { $0.id == selectedThemeId }) ?? .blobs
+    }
+
     // MARK: - Rate Limit (account-level, transient)
     var rateLimitInfo: RateLimitInfo?
 
@@ -1089,6 +1096,7 @@ class AppState {
         var costHistory: [CostRecord]?
         var soundEnabled: Bool?
         var notificationsEnabled: Bool?
+        var selectedThemeId: String?
     }
 
     func saveState() {
@@ -1101,7 +1109,8 @@ class AppState {
             promptTemplates: promptTemplates,
             costHistory: costHistory,
             soundEnabled: soundEnabled,
-            notificationsEnabled: notificationsEnabled
+            notificationsEnabled: notificationsEnabled,
+            selectedThemeId: selectedThemeId
         )
         do {
             let data = try JSONEncoder().encode(saved)
@@ -1131,6 +1140,7 @@ class AppState {
         costHistory = saved.costHistory ?? []
         soundEnabled = saved.soundEnabled ?? true
         notificationsEnabled = saved.notificationsEnabled ?? true
+        selectedThemeId = saved.selectedThemeId ?? "blobs"
     }
 
     // MARK: - Session Restore

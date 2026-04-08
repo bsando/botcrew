@@ -7,6 +7,7 @@ struct SubTabView: View {
     let agent: Agent
     let isSelected: Bool
     let isEditing: Bool
+    var theme: SpriteTheme = .blobs
     @Binding var editText: String
     var onCommitRename: () -> Void = {}
     @Environment(\.colorScheme) private var colorScheme
@@ -14,7 +15,7 @@ struct SubTabView: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            SpriteThumbnail(bodyColor: agent.bodyColor, size: .sub)
+            SpriteThumbnail(bodyColor: agent.bodyColor, size: .sub, theme: theme)
 
             if isEditing {
                 TextField("Name", text: $editText, onCommit: onCommitRename)

@@ -219,7 +219,7 @@ struct OfficeCanvasView: View {
     }
 
     private func drawSprite(context: inout GraphicsContext, center: CGPoint, agent: Agent, scale: CGFloat, opacity: Double, time: Double) {
-        let grid = SpriteData.shape(for: agent.status)
+        let grid = SpriteData.shape(for: agent.status, theme: appState.selectedTheme)
         let gridW = CGFloat(SpriteData.gridWidth)
         let gridH = CGFloat(SpriteData.gridHeight)
         let originX = center.x - (gridW * scale) / 2

@@ -34,6 +34,7 @@ struct TabBarView: View {
                                     isExpanded: isExpanded,
                                     isSelected: appState.selectedAgentId == root.id,
                                     isEditing: editingAgentId == root.id,
+                                    theme: appState.selectedTheme,
                                     editText: $editText,
                                     onCommitRename: { commitRename(root.id) }
                                 )
@@ -54,6 +55,7 @@ struct TabBarView: View {
                                             agent: sub,
                                             isSelected: appState.selectedAgentId == sub.id,
                                             isEditing: editingAgentId == sub.id,
+                                            theme: appState.selectedTheme,
                                             editText: $editText,
                                             onCommitRename: { commitRename(sub.id) }
                                         )
