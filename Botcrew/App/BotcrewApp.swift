@@ -13,7 +13,7 @@ struct BotcrewApp: App {
     }()
 
     var body: some Scene {
-        WindowGroup {
+        Window("BotCrew", id: "main") {
             ContentView()
                 .environment(appState)
                 .frame(minWidth: 900, minHeight: 640)
@@ -21,6 +21,7 @@ struct BotcrewApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1100, height: 700)
+        .windowResizability(.contentSize)
         .commands {
             BotcrewCommands(appState: appState)
 
