@@ -187,6 +187,22 @@ class AppState {
         saveState()
     }
 
+    /// Save custom pixel art for an agent
+    func setCustomSprite(projectId: UUID, agentName: String, shapes: SpriteShapeSet) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        projects[idx].officeLayout.customSprites[agentName] = shapes
+        saveState()
+    }
+
+    /// Resolve the sprite grid for an agent, checking custom sprites first
+    func resolveGrid(for agent: Agent, status: AgentStatus) -> [[Int]] {
+        if let project = selectedProject,
+           let custom = project.officeLayout.customSprites[agent.name] {
+            return custom.shape(for: status)
+        }
+        return selectedTheme.shapes.shape(for: status)
+    }
+
     /// Apply persisted colors to an agent if available
     func applyPersistedColors(to agent: inout Agent, projectIdx: Int) {
         let layout = projects[projectIdx].officeLayout

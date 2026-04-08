@@ -35,6 +35,7 @@ struct OfficeCanvasView: View {
     @State private var editingColorAgentId: UUID?
     @State private var editBodyColor: Color = .white
     @State private var editShirtColor: Color = .gray
+    @State private var editingSpriteAgent: Agent?
 
     var body: some View {
         TimelineView(.animation) { timeline in
@@ -108,6 +109,9 @@ struct OfficeCanvasView: View {
                                     editShirtColor = sprite.agent.shirtColor
                                     editingColorAgentId = sprite.id
                                 }
+                                Button("Edit Sprite...") {
+                                    editingSpriteAgent = sprite.agent
+                                }
                             }
                             .popover(
                                 isPresented: Binding(
@@ -133,6 +137,15 @@ struct OfficeCanvasView: View {
                     }
                 }
             }
+        }
+        .sheet(item: $editingSpriteAgent) { agent in
+            let existing = appState.selectedProject?.officeLayout.customSprites[agent.name]
+            SpriteEditorView(
+                agentName: agent.name,
+                bodyColor: agent.bodyColor,
+                initial: existing ?? appState.selectedTheme.shapes
+            )
+            .environment(appState)
         }
     }
 
@@ -303,7 +316,7 @@ struct OfficeCanvasView: View {
     }
 
     private func drawSprite(context: inout GraphicsContext, center: CGPoint, agent: Agent, scale: CGFloat, opacity: Double, time: Double) {
-        let grid = SpriteData.shape(for: agent.status, theme: appState.selectedTheme)
+        let grid = appState.resolveGrid(for: agent, status: agent.status)
         let gridW = CGFloat(SpriteData.gridWidth)
         let gridH = CGFloat(SpriteData.gridHeight)
         let originX = center.x - (gridW * scale) / 2

@@ -9,6 +9,8 @@ struct OfficeLayout: Codable {
     var spritePositions: [String: NormalizedPoint] = [:]
     /// Agent name → custom colors (overrides default palette)
     var agentColors: [String: AgentColorConfig] = [:]
+    /// Agent name → custom sprite pixel art (overrides theme)
+    var customSprites: [String: SpriteShapeSet] = [:]
 }
 
 struct AgentColorConfig: Codable, Equatable {
