@@ -78,6 +78,22 @@ struct OfficePanelView: View {
 
             Spacer()
 
+            // Reset layout button (only show if positions are customized)
+            if let project = appState.selectedProject,
+               !project.officeLayout.spritePositions.isEmpty {
+                Button {
+                    if let pid = appState.selectedProjectId {
+                        appState.resetOfficeLayout(projectId: pid)
+                    }
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Theme.textOnDark(colorScheme).opacity(0.35))
+                }
+                .buttonStyle(.plain)
+                .help("Reset sprite positions")
+            }
+
             // Theme picker
             Menu {
                 ForEach(SpriteTheme.allBuiltIn) { theme in

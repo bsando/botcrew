@@ -159,6 +159,20 @@ class AppState {
         SpriteTheme.allBuiltIn.first(where: { $0.id == selectedThemeId }) ?? .blobs
     }
 
+    /// Save a sprite's position in the office (normalized 0..1 coordinates)
+    func setSpritePosition(projectId: UUID, agentName: String, normalizedPos: NormalizedPoint) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        projects[idx].officeLayout.spritePositions[agentName] = normalizedPos
+        saveState()
+    }
+
+    /// Reset all custom sprite positions for a project
+    func resetOfficeLayout(projectId: UUID) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        projects[idx].officeLayout.spritePositions.removeAll()
+        saveState()
+    }
+
     // MARK: - Rate Limit (account-level, transient)
     var rateLimitInfo: RateLimitInfo?
 

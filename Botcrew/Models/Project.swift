@@ -18,6 +18,7 @@ struct Project: Identifiable {
     var estimatedCost: Double
     var lastSessionId: String? = nil
     var isAttached: Bool = false  // true = read-only watch of external session
+    var officeLayout: OfficeLayout = OfficeLayout()
 }
 
 // MARK: - Persistence (only project metadata, not ephemeral agents/events)
@@ -29,6 +30,7 @@ struct SavedProject: Codable {
     var tokenCount: Int
     var estimatedCost: Double
     var lastSessionId: String?
+    var officeLayout: OfficeLayout?
 
     init(from project: Project) {
         self.id = project.id
@@ -37,6 +39,7 @@ struct SavedProject: Codable {
         self.tokenCount = project.tokenCount
         self.estimatedCost = project.estimatedCost
         self.lastSessionId = project.lastSessionId
+        self.officeLayout = project.officeLayout
     }
 
     func toProject() -> Project {
@@ -49,7 +52,8 @@ struct SavedProject: Codable {
             events: [],
             tokenCount: tokenCount,
             estimatedCost: estimatedCost,
-            lastSessionId: lastSessionId
+            lastSessionId: lastSessionId,
+            officeLayout: officeLayout ?? OfficeLayout()
         )
     }
 }

@@ -31,6 +31,7 @@ struct BobParams {
 struct OfficeCanvasView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var dragOffsets: [UUID: CGSize] = [:]
 
     var body: some View {
         TimelineView(.animation) { timeline in
@@ -40,21 +41,64 @@ struct OfficeCanvasView: View {
                 let layouts = computeLayouts(in: geo.size)
 
                 Canvas { context, size in
-                    drawClusters(context: &context, layouts: layouts, size: size, time: time)
+                    // Apply drag offsets to layouts for rendering
+                    let adjustedLayouts = layouts.map { layout -> SpriteLayout in
+                        if let offset = dragOffsets[layout.id] {
+                            let newCenter = CGPoint(
+                                x: layout.center.x + offset.width,
+                                y: layout.center.y + offset.height
+                            )
+                            return SpriteLayout(
+                                id: layout.id, agent: layout.agent,
+                                center: newCenter, isRoot: layout.isRoot,
+                                rootCenter: layout.rootCenter
+                            )
+                        }
+                        return layout
+                    }
+                    drawClusters(context: &context, layouts: adjustedLayouts, size: size, time: time)
                 }
                 .overlay {
-                    // Invisible tap targets for each sprite (use base position, not animated)
                     ForEach(layouts) { sprite in
+                        let dragOffset = dragOffsets[sprite.id] ?? .zero
+                        let displayPos = CGPoint(
+                            x: sprite.center.x + dragOffset.width,
+                            y: sprite.center.y + dragOffset.height
+                        )
                         Color.clear
                             .frame(width: 56, height: 60)
                             .contentShape(Rectangle())
-                            .position(sprite.center)
-                            .onTapGesture {
-                                appState.selectAgent(sprite.id)
-                                if sprite.agent.status == .error {
-                                    appState.showTerminal = true
+                            .position(displayPos)
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        dragOffsets[sprite.id] = value.translation
+                                    }
+                                    .onEnded { value in
+                                        let finalX = sprite.center.x + value.translation.width
+                                        let finalY = sprite.center.y + value.translation.height
+                                        let normalized = NormalizedPoint(
+                                            x: Double(finalX / geo.size.width),
+                                            y: Double(finalY / geo.size.height)
+                                        )
+                                        if let pid = appState.selectedProjectId {
+                                            appState.setSpritePosition(
+                                                projectId: pid,
+                                                agentName: sprite.agent.name,
+                                                normalizedPos: normalized
+                                            )
+                                        }
+                                        dragOffsets.removeValue(forKey: sprite.id)
+                                    }
+                            )
+                            .simultaneousGesture(
+                                TapGesture().onEnded {
+                                    appState.selectAgent(sprite.id)
+                                    if sprite.agent.status == .error {
+                                        appState.showTerminal = true
+                                    }
                                 }
-                            }
+                            )
                     }
                 }
             }
@@ -75,14 +119,21 @@ struct OfficeCanvasView: View {
         let roots = appState.rootAgents
         guard !roots.isEmpty else { return [] }
 
+        let positions = appState.selectedProject?.officeLayout.spritePositions ?? [:]
         var layouts: [SpriteLayout] = []
         let clusterCount = CGFloat(roots.count)
         let clusterWidth = size.width / clusterCount
 
         for (i, root) in roots.enumerated() {
             let clusterCenterX = clusterWidth * (CGFloat(i) + 0.5)
-            let rootY = size.height * 0.35
-            let rootCenter = CGPoint(x: clusterCenterX, y: rootY)
+            let defaultRootCenter = CGPoint(x: clusterCenterX, y: size.height * 0.35)
+
+            let rootCenter: CGPoint
+            if let saved = positions[root.name] {
+                rootCenter = CGPoint(x: saved.x * Double(size.width), y: saved.y * Double(size.height))
+            } else {
+                rootCenter = defaultRootCenter
+            }
 
             layouts.append(SpriteLayout(
                 id: root.id, agent: root, center: rootCenter,
@@ -96,10 +147,12 @@ struct OfficeCanvasView: View {
             let subStartX = clusterCenterX - totalSubWidth / 2
 
             for (j, sub) in subs.enumerated() {
-                let subCenter = CGPoint(
-                    x: subStartX + CGFloat(j) * subSpacing,
-                    y: subY
-                )
+                let subCenter: CGPoint
+                if let saved = positions[sub.name] {
+                    subCenter = CGPoint(x: saved.x * Double(size.width), y: saved.y * Double(size.height))
+                } else {
+                    subCenter = CGPoint(x: subStartX + CGFloat(j) * subSpacing, y: subY)
+                }
                 layouts.append(SpriteLayout(
                     id: sub.id, agent: sub, center: subCenter,
                     isRoot: false, rootCenter: rootCenter
