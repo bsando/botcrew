@@ -13,7 +13,7 @@ struct AgentTreeView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack {
-                Text("AGENTS")
+                Text("PROJECTS")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.66)
                     .foregroundStyle(Theme.textSecondary(colorScheme))
